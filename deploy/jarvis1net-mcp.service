@@ -1,0 +1,14 @@
+[Unit]
+Description=mcp-jarvis1net service
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/jump/mcp-jarvis1net
+ExecStart=/home/jump/mcp-jarvis1net/.venv/bin/uvicorn src.app:app --host 127.0.0.1 --port 8801
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

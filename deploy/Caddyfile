@@ -1,0 +1,11 @@
+jarvis1.net, www.jarvis1.net {
+    respond "Hello jarvis1net"
+}
+
+api.jarvis1.net {
+    respond "Hello jarvis1net"
+}
+
+mcp.jarvis1.net {
+    reverse_proxy 127.0.0.1:8801
+}
