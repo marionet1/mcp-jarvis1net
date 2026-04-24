@@ -360,6 +360,8 @@ TOOL_SPECS: dict[str, ToolSpec] = {
             description=(
                 "Lists calendar occurrences in a **date window** via Graph `GET /me/calendarView` "
                 "(includes **all-day** `isAllDay` events and recurring instances in range). "
+                "Each `value[]` item includes **`_jarvis1net_calendar_date`** = calendar day of **`start` only** "
+                "(ignore `end` for day bucketing — all-day events often end next calendar day). "
                 "Prefer this over raw `GET /me/calendar/events?$top=…` when the user wants “what’s on my calendar”."
             ),
             properties={
@@ -391,8 +393,9 @@ TOOL_SPECS: dict[str, ToolSpec] = {
             description=(
                 "**Best for “what’s on my calendar on {one calendar day}?”** — one Graph `GET /me/calendarView` call "
                 "for **[start_of_day, start_of_next_day)** in `time_zone` (IANA), including **all-day** events. "
-                "Prefer this over many `microsoft_graph_api` retries with different URL casing or `/me/events?$filter` "
-                "(filters often miss all-day items)."
+                "Results are **filtered to events whose `start` maps to that calendar day** (`_jarvis1net_calendar_date`); "
+                "`end` is ignored for day assignment (all-day items often have `end` on the next calendar day). "
+                "Prefer this over many `microsoft_graph_api` retries or `/me/events?$filter` (filters often miss all-day items)."
             ),
             properties={
                 "date": {

@@ -195,6 +195,85 @@ def _graph_calendarview_utc(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+_CAL_START_DATE_NOTE = (
+    "Each item may include `_jarvis1net_calendar_date` = **calendar date of `start` only** (from `start.date` or "
+    "`start.dateTime` in `start.timeZone`). For **all-day** events Graph often sets `end` on the **next** calendar day "
+    "at 00:00 — **do not** assign the event to that day using `end`; use `_jarvis1net_calendar_date` or `start` only."
+)
+
+
+def _parse_graph_start_datetime_to_zoned(dt_raw: str, tz_win: str) -> datetime | None:
+    """Parsuje `start.dateTime` z Graph; brak offsetu = „ściana zegara” w strefie `tz_win` (konwencja Graph)."""
+    try:
+        z = ZoneInfo(tz_win)
+    except Exception:
+        z = timezone.utc
+    s = dt_raw.strip()
+    if not s:
+        return None
+    if s.endswith("Z"):
+        try:
+            dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return dt.astimezone(z)
+    try:
+        dt = datetime.fromisoformat(s)
+    except ValueError:
+        if "T" in s and "." in s:
+            try:
+                dt = datetime.fromisoformat(s.split(".", 1)[0])
+            except ValueError:
+                return None
+        else:
+            return None
+    if dt.tzinfo is not None:
+        return dt.astimezone(z)
+    return dt.replace(tzinfo=z)
+
+
+def _event_start_calendar_date(start: Any, *, default_tz: str) -> str | None:
+    """Dzień kalendarzowy przypisania wydarzenia — wyłącznie od `start` (nie od `end`)."""
+    if not isinstance(start, dict):
+        return None
+    date_only = start.get("date")
+    if isinstance(date_only, str) and len(date_only) >= 10:
+        return date_only[:10]
+    dt_raw = start.get("dateTime")
+    if not isinstance(dt_raw, str) or not dt_raw.strip():
+        return None
+    tz_win = str(start.get("timeZone") or "").strip() or default_tz
+    dt = _parse_graph_start_datetime_to_zoned(dt_raw, tz_win)
+    if dt is None:
+        return None
+    return dt.date().isoformat()
+
+
+def _enrich_calendar_view_response(data: dict[str, Any], *, default_tz: str) -> dict[str, Any]:
+    out: dict[str, Any] = {**data, "_jarvis1net_note": _CAL_START_DATE_NOTE}
+    vals = out.get("value")
+    if not isinstance(vals, list):
+        return out
+    new_vals: list[Any] = []
+    for item in vals:
+        if not isinstance(item, dict):
+            new_vals.append(item)
+            continue
+        row = dict(item)
+        st = row.get("start")
+        prefer = default_tz
+        if isinstance(st, dict):
+            tz_s = str(st.get("timeZone") or "").strip()
+            if tz_s:
+                prefer = tz_s
+        cd = _event_start_calendar_date(st, default_tz=prefer) if isinstance(st, dict) else None
+        if cd:
+            row["_jarvis1net_calendar_date"] = cd
+        new_vals.append(row)
+    out["value"] = new_vals
+    return out
+
+
 def microsoft_calendar_list_events(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     """
     Używa GET /me/calendarView (okno dat), nie surowej listy /me/calendar/events.
@@ -214,7 +293,7 @@ def microsoft_calendar_list_events(args: dict[str, Any], auth: ApiKeyAuth) -> di
     now = datetime.now(timezone.utc)
     start = now - timedelta(days=past_days)
     end = now + timedelta(days=days)
-    return graph_get(
+    raw = graph_get(
         "/me/calendarView",
         {
             "startDateTime": _graph_calendarview_utc(start),
@@ -224,6 +303,7 @@ def microsoft_calendar_list_events(args: dict[str, Any], auth: ApiKeyAuth) -> di
             "$select": "id,subject,start,end,organizer,isCancelled,isAllDay,location,showAs",
         },
     )
+    return _enrich_calendar_view_response(raw, default_tz="UTC")
 
 
 def microsoft_calendar_events_on_date(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
@@ -245,7 +325,7 @@ def microsoft_calendar_events_on_date(args: dict[str, Any], auth: ApiKeyAuth) ->
     end_local = start_local + timedelta(days=1)
     start_utc = start_local.astimezone(timezone.utc)
     end_utc = end_local.astimezone(timezone.utc)
-    return graph_get(
+    raw = graph_get(
         "/me/calendarView",
         {
             "startDateTime": _graph_calendarview_utc(start_utc),
@@ -255,6 +335,21 @@ def microsoft_calendar_events_on_date(args: dict[str, Any], auth: ApiKeyAuth) ->
             "$select": "id,subject,start,end,organizer,isCancelled,isAllDay,location,showAs",
         },
     )
+    data = _enrich_calendar_view_response(raw, default_tz=tz_name)
+    target = date_raw[:10]
+    vals = data.get("value")
+    if isinstance(vals, list):
+        filtered: list[Any] = []
+        for e in vals:
+            if not isinstance(e, dict):
+                filtered.append(e)
+                continue
+            cd = e.get("_jarvis1net_calendar_date")
+            if cd is None or cd == target:
+                filtered.append(e)
+        data["value"] = filtered
+        data["_jarvis1net_filtered_to_start_calendar_date"] = target
+    return data
 
 
 def microsoft_onedrive_list_root(_: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
