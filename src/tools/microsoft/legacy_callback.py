@@ -34,11 +34,9 @@ code{{background:#f4f4f4;padding:0.15rem 0.35rem}} pre{{background:#111;color:#e
 <ul>
 <li>Usuń redirect typu Web wskazujący na <code>mcp.jarvis1.net/.../oauth/callback</code> (nie jest już używany).</li>
 <li>Włącz <strong>Allow public client flows</strong> i w „Mobile and desktop applications”
-dodaj <strong>wszystkie</strong> potrzebne URI: przy agencie z <code>tenant=common</code> zwykle trzy —
-<code>.../common/oauth2/nativeclient</code>,
-<code>.../organizations/oauth2/nativeclient</code>,
-<code>.../consumers/oauth2/nativeclient</code>
-(brak jednego z nich często daje <code>invalid_request</code> na nativeclient).</li>
+dodaj <strong>jeden</strong> redirect <code>https://login.microsoftonline.com/&lt;tenant&gt;/oauth2/nativeclient</code>
+zgodny z tenantem w agencie (<code>common</code>, <code>organizations</code>, <code>consumers</code> lub GUID).
+Nie mieszaj wielu segmentów naraz — może to dać <code>invalid_request</code> / brak <code>response_type</code>.</li>
 </ul>
 <p>Parametry z przekierowania (do debugowania):</p>
 <pre>{html.escape(qs[:2000]) if qs else "(puste)"}</pre>
