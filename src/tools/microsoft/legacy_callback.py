@@ -34,8 +34,9 @@ code{{background:#f4f4f4;padding:0.15rem 0.35rem}} pre{{background:#111;color:#e
 <ul>
 <li>Usuń redirect typu Web wskazujący na <code>mcp.jarvis1.net/.../oauth/callback</code> (nie jest już używany).</li>
 <li>Włącz <strong>Allow public client flows</strong> i dodaj platformę
-„Mobile and desktop applications” z redirectem
-<code>https://login.microsoftonline.com/common/oauth2/nativeclient</code> (lub równoważny z dokumentacji Microsoft dla public client).</li>
+„Mobile and desktop applications” z redirectem <strong>dokładnie</strong>
+<code>https://login.microsoftonline.com/&lt;tenant&gt;/oauth2/nativeclient</code>,
+gdzie <code>&lt;tenant&gt;</code> to ten sam wpis co w agencie (<code>common</code>, <code>organizations</code> lub GUID katalogu) — inaczej po logowaniu pojawia się <code>invalid_request</code> na stronie nativeclient.</li>
 </ul>
 <p>Parametry z przekierowania (do debugowania):</p>
 <pre>{html.escape(qs[:2000]) if qs else "(puste)"}</pre>
