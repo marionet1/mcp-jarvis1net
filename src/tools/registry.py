@@ -357,13 +357,27 @@ TOOL_SPECS: dict[str, ToolSpec] = {
         scope="microsoft",
         schema=_schema(
             name="microsoft_calendar_list_events",
-            description="Lists upcoming calendar events for the signed-in user (metadata).",
+            description=(
+                "Lists calendar occurrences in a **date window** via Graph `GET /me/calendarView` "
+                "(includes **all-day** `isAllDay` events and recurring instances in range). "
+                "Prefer this over raw `GET /me/calendar/events?$top=…` when the user wants “what’s on my calendar”."
+            ),
             properties={
                 "top": {
                     "type": "integer",
-                    "description": "Max events to return (1..50, default 10).",
-                    "default": 10,
-                }
+                    "description": "Max rows in this response (1..50, default 25). Follow @odata.nextLink if truncated.",
+                    "default": 25,
+                },
+                "days": {
+                    "type": "integer",
+                    "description": "Window length forward from “now” in days (1..120, default 56).",
+                    "default": 56,
+                },
+                "past_days": {
+                    "type": "integer",
+                    "description": "How many days **before** now to include (0..14, default 1) so same-day / edge all-day events are not missed.",
+                    "default": 1,
+                },
             },
             required=[],
         ),

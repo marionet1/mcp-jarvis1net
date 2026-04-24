@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import HTTPException
@@ -185,13 +186,42 @@ def microsoft_mail_mark_folder_read(args: dict[str, Any], auth: ApiKeyAuth) -> d
     }
 
 
+def _graph_calendarview_utc(dt: datetime) -> str:
+    """ISO 8601 UTC dla parametrów `startDateTime` / `endDateTime` w calendarView."""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    dt = dt.astimezone(timezone.utc).replace(microsecond=0)
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def microsoft_calendar_list_events(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
+    """
+    Używa GET /me/calendarView (okno dat), nie surowej listy /me/calendar/events.
+
+    Samo ``/me/calendar/events?$top=…`` bywa mylące: domyślne sortowanie i brak jawnego zakresu
+    sprawiają, że w pierwszej stronie często giną wydarzenia **całodniowe** (isAllDay).
+    calendarView zwraca wszystkie wystąpienia w przedziale czasu, w tym całodniowe i instancje serii.
+    """
     _ = auth
-    top = int(args.get("top", 10))
+    top = int(args.get("top", 25))
     top = min(max(top, 1), 50)
+    days = int(args.get("days", 56))
+    days = min(max(days, 1), 120)
+    past_days = int(args.get("past_days", 1))
+    past_days = min(max(past_days, 0), 14)
+
+    now = datetime.now(timezone.utc)
+    start = now - timedelta(days=past_days)
+    end = now + timedelta(days=days)
     return graph_get(
-        "/me/calendar/events",
-        {"$top": str(top), "$select": "id,subject,start,end,organizer,isCancelled"},
+        "/me/calendarView",
+        {
+            "startDateTime": _graph_calendarview_utc(start),
+            "endDateTime": _graph_calendarview_utc(end),
+            "$top": str(top),
+            "$orderby": "start/dateTime",
+            "$select": "id,subject,start,end,organizer,isCancelled,isAllDay,location,showAs",
+        },
     )
 
 
