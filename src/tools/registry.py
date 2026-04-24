@@ -285,7 +285,10 @@ TOOL_SPECS: dict[str, ToolSpec] = {
         scope="microsoft",
         schema=_schema(
             name="microsoft_mail_list_messages",
-            description="Lists recent messages from the signed-in user's Inbox (metadata only).",
+            description=(
+                "Lists recent messages from the **root Inbox folder only** (metadata). "
+                "Subfolder mail is **not** included. For Inbox + all **first-level** subfolders, use **`microsoft_mail_list_inbox_tree`**."
+            ),
             properties={
                 "top": {
                     "type": "integer",
@@ -296,6 +299,32 @@ TOOL_SPECS: dict[str, ToolSpec] = {
             required=[],
         ),
         runner=ms_ops.microsoft_mail_list_messages,
+    ),
+    "microsoft_mail_list_inbox_tree": ToolSpec(
+        name="microsoft_mail_list_inbox_tree",
+        scope="microsoft",
+        schema=_schema(
+            name="microsoft_mail_list_inbox_tree",
+            description=(
+                "Lists recent messages for **Inbox root and each first-level subfolder** under Inbox (separate lists). "
+                "Use when the user asks to check the mailbox / inbox and may have subfolders — Graph does not merge "
+                "subfolder messages into `/inbox/messages`. Does **not** recurse deeper than one level under Inbox."
+            ),
+            properties={
+                "top_per_folder": {
+                    "type": "integer",
+                    "description": "Max messages per folder (1..50, default 10). Alias: `top`.",
+                    "default": 10,
+                },
+                "max_child_folders": {
+                    "type": "integer",
+                    "description": "Max first-level child folders to query (1..30, default 15). If Inbox has more, see `child_folders_page_truncated`.",
+                    "default": 15,
+                },
+            },
+            required=[],
+        ),
+        runner=ms_ops.microsoft_mail_list_inbox_tree,
     ),
     "microsoft_mail_mark_read": ToolSpec(
         name="microsoft_mail_mark_read",
