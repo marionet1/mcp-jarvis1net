@@ -31,7 +31,9 @@ class ApiKeyAuth:
     scopes_raw: str
 
     def allows(self, module: str) -> bool:
-        """Checks whether scope grants access to a module (filesystem/outlook/sse, or * / all)."""
+        """Checks scope for a module (filesystem/outlook/sse, * / all). ``meta`` is allowed for any valid API key."""
+        if module == "meta":
+            return True
         s = (self.scopes_raw or "").strip()
         if not s or s == "*":
             return True

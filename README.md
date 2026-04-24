@@ -49,6 +49,7 @@ Paths are relative to the base URL:
 |------------------|--------|---------|------|
 | key-scoped | GET | `/v1/tools` | Returns tool schemas available for your API key |
 | key-scoped | POST | `/v1/tools/call` | Generic tool execution: JSON `{name, arguments}` |
+| `meta` | (tool) | `mcp_refresh_tool_manifest` via `/v1/tools/call` | Same payload as `GET /v1/tools` (always fresh; allowed for any valid API key) |
 | `filesystem` | GET | `/v1/tools/filesystem/list` | Directory listing (`?path=`) |
 | `filesystem` | GET | `/v1/tools/filesystem/stat` | Path metadata (`?path=`) |
 | `filesystem` | GET | `/v1/tools/filesystem/read` | Read text file (`?path=`, optional `max_bytes`) |
@@ -61,6 +62,7 @@ Paths are relative to the base URL:
 | `sse` | GET | `/sse` | SSE stream |
 
 Endpoint access depends on scopes assigned to your key (`filesystem`, `shell`, `outlook`, `sse`, or `*` for all).  
+The `meta` tool `mcp_refresh_tool_manifest` is available to **any valid API key** (it only returns the same filtered manifest as `GET /v1/tools`).  
 A `403` scope error means your key does not include the requested permission.
 
 ---

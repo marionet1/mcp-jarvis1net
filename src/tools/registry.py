@@ -26,7 +26,7 @@ class ToolSpec:
     name: str
     scope: str
     schema: dict[str, Any]
-    runner: Callable[[dict[str, Any]], dict[str, Any]]
+    runner: Callable[[dict[str, Any], ApiKeyAuth], dict[str, Any]]
 
 
 class ToolCallBody(BaseModel):
@@ -55,24 +55,27 @@ def _schema(
     }
 
 
-def _fs_list(args: dict[str, Any]) -> dict[str, Any]:
+def _fs_list(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
+    _ = auth
     return list_directory(path=str(args.get("path", ".")))
 
 
-def _fs_stat(args: dict[str, Any]) -> dict[str, Any]:
+def _fs_stat(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     if "path" not in args:
         raise HTTPException(status_code=400, detail="Missing required argument: path")
+    _ = auth
     return stat_path(path=str(args["path"]))
 
 
-def _fs_read(args: dict[str, Any]) -> dict[str, Any]:
+def _fs_read(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     if "path" not in args:
         raise HTTPException(status_code=400, detail="Missing required argument: path")
     mb = args.get("max_bytes")
+    _ = auth
     return read_file(path=str(args["path"]), max_bytes=int(mb) if mb is not None else None)
 
 
-def _fs_write(args: dict[str, Any]) -> dict[str, Any]:
+def _fs_write(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     if "path" not in args:
         raise HTTPException(status_code=400, detail="Missing required argument: path")
     body = WriteBody(
@@ -81,28 +84,32 @@ def _fs_write(args: dict[str, Any]) -> dict[str, Any]:
         encoding=str(args.get("encoding") or "utf-8"),
         create_parents=bool(args.get("create_parents", False)),
     )
+    _ = auth
     return write_file(body)
 
 
-def _fs_mkdir(args: dict[str, Any]) -> dict[str, Any]:
+def _fs_mkdir(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     if "path" not in args:
         raise HTTPException(status_code=400, detail="Missing required argument: path")
+    _ = auth
     return mkdir(MkdirBody(path=str(args["path"]), parents=bool(args.get("parents", False))))
 
 
-def _fs_delete(args: dict[str, Any]) -> dict[str, Any]:
+def _fs_delete(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     if "path" not in args:
         raise HTTPException(status_code=400, detail="Missing required argument: path")
+    _ = auth
     return delete_path(DeleteBody(path=str(args["path"])))
 
 
-def _fs_rename(args: dict[str, Any]) -> dict[str, Any]:
+def _fs_rename(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     if "from_path" not in args or "to_path" not in args:
         raise HTTPException(status_code=400, detail="Missing required arguments: from_path, to_path")
+    _ = auth
     return rename_path(RenameBody(from_path=str(args["from_path"]), to_path=str(args["to_path"])))
 
 
-def _shell_run(args: dict[str, Any]) -> dict[str, Any]:
+def _shell_run(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     if "action" not in args:
         raise HTTPException(status_code=400, detail="Missing required argument: action")
     body = ShellRunBody(
@@ -110,11 +117,19 @@ def _shell_run(args: dict[str, Any]) -> dict[str, Any]:
         host=str(args["host"]) if args.get("host") is not None else None,
         count=int(args.get("count", 2)),
     )
+    _ = auth
     return run_shell(body)
 
 
-def _outlook_status(_: dict[str, Any]) -> dict[str, Any]:
+def _outlook_status(_: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
+    _ = auth
     return outlook_status()
+
+
+def _mcp_refresh_tool_manifest(_: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
+    """Returns the current tool manifest for this API key (same source as GET /v1/tools)."""
+    tools = manifest_for_auth(auth)
+    return {"tools": tools, "count": len(tools)}
 
 
 TOOL_SPECS: dict[str, ToolSpec] = {
@@ -252,6 +267,21 @@ TOOL_SPECS: dict[str, ToolSpec] = {
         ),
         runner=_outlook_status,
     ),
+    "mcp_refresh_tool_manifest": ToolSpec(
+        name="mcp_refresh_tool_manifest",
+        scope="meta",
+        schema=_schema(
+            name="mcp_refresh_tool_manifest",
+            description=(
+                "Fetches the current MCP tool manifest for this API key from the server (same as GET /v1/tools). "
+                "Always call this when the user asks which tools exist, what capabilities are available, "
+                "or wants an up-to-date tool list. Do not answer from memory or earlier turns."
+            ),
+            properties={},
+            required=[],
+        ),
+        runner=_mcp_refresh_tool_manifest,
+    ),
 }
 
 
@@ -267,5 +297,5 @@ def run_tool_call(name: str, arguments: dict[str, Any], auth: ApiKeyAuth) -> dic
         raise HTTPException(status_code=404, detail=f"Unknown tool: {name}")
     if not auth.allows(spec.scope):
         raise HTTPException(status_code=403, detail=f"API key is not allowed to use: {spec.scope}")
-    return spec.runner(arguments or {})
+    return spec.runner(arguments or {}, auth)
 
