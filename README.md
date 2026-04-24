@@ -140,3 +140,4 @@ curl -sS -X POST "https://mcp.jarvis1.net/v1/tools/call" \
 - File read/write size limits are enforced on the server.
 - Access is restricted to allowed filesystem roots on this hosted instance.
 - **`microsoft_*` tools** require **`X-Graph-Authorization`** on each `/v1/tools/call`; configure OAuth and Azure credentials only on your **agent**, not on MCP.
+- **`GET /v1/tools/microsoft/oauth/callback`** returns a short help page only (legacy URL from old app registrations); OAuth does not run on MCP.
