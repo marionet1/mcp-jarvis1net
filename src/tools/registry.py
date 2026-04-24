@@ -386,7 +386,8 @@ TOOL_SPECS: dict[str, ToolSpec] = {
                 "Low-level Microsoft Graph v1.0 call for the signed-in user. "
                 "`path` must start with `/me` or `/me/...` (mailFolders, messages, sendMail, calendar/events, drive, …). "
                 "Use GET+query for reads; POST/PATCH/DELETE+body for writes (e.g. send mail, create/update/delete event, upload file). "
-                "Requires matching delegated scopes on the token (Mail.ReadWrite, Mail.Send, Calendars.ReadWrite, Files.ReadWrite.All)."
+                "For listing recent messages without full content, prefer `$select=id,subject,receivedDateTime,from` (omit body/bodyPreview) "
+                "so responses stay small. Requires matching delegated scopes on the token (Mail.ReadWrite, Mail.Send, Calendars.ReadWrite, Files.ReadWrite.All)."
             ),
             properties={
                 "method": {
