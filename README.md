@@ -58,7 +58,7 @@ Paths are relative to the base URL:
 | `filesystem` | POST | `/v1/tools/filesystem/delete` | JSON: `path` (file or empty directory) |
 | `filesystem` | POST | `/v1/tools/filesystem/rename` | JSON: `from_path`, `to_path` |
 | `shell` | POST | `/v1/tools/shell/run` | JSON diagnostics action (`disk_usage`, `memory_usage`, `cpu_load`, `uptime`, `ping`) |
-| `microsoft` | (tool) | `microsoft_*` via `/v1/tools/call` | Graph: profile, mail/calendar/drive helpers + `microsoft_graph_api` (GET/POST/PATCH/DELETE under `/me/...`) |
+| `microsoft` | (tool) | `microsoft_*` via `/v1/tools/call` | Graph: profile, mail/calendar/drive helpers, **`microsoft_calendar_list_events`** (rolling `calendarView` window), **`microsoft_calendar_events_on_date`** (one calendar day, all-day safe), **`microsoft_graph_api`** (GET/POST/PATCH/DELETE under `/me/...`) |
 | `sse` | GET | `/sse` | SSE stream |
 
 Endpoint access depends on scopes assigned to your key (`filesystem`, `shell`, `microsoft`, `sse`, or `*` for all).  
@@ -140,4 +140,4 @@ curl -sS -X POST "https://mcp.jarvis1.net/v1/tools/call" \
 - File read/write size limits are enforced on the server.
 - Access is restricted to allowed filesystem roots on this hosted instance.
 - **`microsoft_*` tools** require **`X-Graph-Authorization`** on each `/v1/tools/call`; configure OAuth and Azure credentials only on your **agent**, not on MCP.
-- **`GET /v1/tools/microsoft/oauth/callback`** returns a short help page only (legacy URL from old app registrations); OAuth does not run on MCP.
+- **`GET /v1/tools/microsoft/oauth/callback`** returns a short English help page only (legacy URL from old app registrations); OAuth does not run on MCP — use device code on the **jarvis1net** agent (`/microsoft-login` in Telegram).

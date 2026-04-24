@@ -39,7 +39,7 @@ def _safe_me_path(path: str) -> str:
 
 
 def _split_me_path_and_query(path: str) -> tuple[str, dict[str, str]]:
-    """Rozdziela ścieżkę `/me/...` od query wklejonego w `path` (model często podaje całość w jednym stringu)."""
+    """Split `/me/...` path from query pasted inside `path` (models often send one combined string)."""
     p = path.strip()
     if "?" not in p:
         return p, {}
@@ -51,7 +51,7 @@ def _split_me_path_and_query(path: str) -> tuple[str, dict[str, str]]:
 
 
 def _canonical_graph_query_key(key: str) -> str:
-    """Graph OData: `StartDateTime` / `startdatetime` musi być dokładnie `startDateTime` — inaczej Graph ignoruje filtr."""
+    """Graph OData: `StartDateTime` / `startdatetime` must become exactly `startDateTime` or Graph drops the filter."""
     k = str(key).strip()
     if not k:
         return k

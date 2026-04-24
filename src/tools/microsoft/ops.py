@@ -188,7 +188,7 @@ def microsoft_mail_mark_folder_read(args: dict[str, Any], auth: ApiKeyAuth) -> d
 
 
 def _graph_calendarview_utc(dt: datetime) -> str:
-    """ISO 8601 UTC dla parametrów `startDateTime` / `endDateTime` w calendarView."""
+    """ISO 8601 UTC for `startDateTime` / `endDateTime` in calendarView."""
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     dt = dt.astimezone(timezone.utc).replace(microsecond=0)
@@ -203,7 +203,7 @@ _CAL_START_DATE_NOTE = (
 
 
 def _parse_graph_start_datetime_to_zoned(dt_raw: str, tz_win: str) -> datetime | None:
-    """Parsuje `start.dateTime` z Graph; brak offsetu = „ściana zegara” w strefie `tz_win` (konwencja Graph)."""
+    """Parse Graph `start.dateTime`; no offset = wall-clock in `tz_win` (Graph convention)."""
     try:
         z = ZoneInfo(tz_win)
     except Exception:
@@ -233,7 +233,7 @@ def _parse_graph_start_datetime_to_zoned(dt_raw: str, tz_win: str) -> datetime |
 
 
 def _event_start_calendar_date(start: Any, *, default_tz: str) -> str | None:
-    """Dzień kalendarzowy przypisania wydarzenia — wyłącznie od `start` (nie od `end`)."""
+    """Calendar day for the event — from `start` only (not `end`)."""
     if not isinstance(start, dict):
         return None
     date_only = start.get("date")
@@ -276,11 +276,11 @@ def _enrich_calendar_view_response(data: dict[str, Any], *, default_tz: str) -> 
 
 def microsoft_calendar_list_events(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     """
-    Używa GET /me/calendarView (okno dat), nie surowej listy /me/calendar/events.
+    Uses GET /me/calendarView (date window), not a raw /me/calendar/events list.
 
-    Samo ``/me/calendar/events?$top=…`` bywa mylące: domyślne sortowanie i brak jawnego zakresu
-    sprawiają, że w pierwszej stronie często giną wydarzenia **całodniowe** (isAllDay).
-    calendarView zwraca wszystkie wystąpienia w przedziale czasu, w tym całodniowe i instancje serii.
+    ``/me/calendar/events?$top=…`` alone is misleading: default sort and no explicit window
+    often drop **all-day** events (isAllDay) from the first page.
+    calendarView returns all occurrences in the interval, including all-day and series instances.
     """
     _ = auth
     top = int(args.get("top", 25))
@@ -307,7 +307,7 @@ def microsoft_calendar_list_events(args: dict[str, Any], auth: ApiKeyAuth) -> di
 
 
 def microsoft_calendar_events_on_date(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
-    """Jedno wywołanie: wszystkie wystąpienia (w tym całodniowe) w danym dniu kalendarzowym w wybranej strefie IANA."""
+    """Single call: all occurrences (including all-day) on one calendar day in the given IANA zone."""
     _ = auth
     date_raw = str(args.get("date", "")).strip()
     tz_name = str(args.get("time_zone", "Europe/Warsaw")).strip() or "Europe/Warsaw"

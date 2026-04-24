@@ -18,29 +18,29 @@ def microsoft_oauth_callback_legacy(request: Request) -> HTMLResponse:
     params = parse_qs(qs, keep_blank_values=True)
     err = (params.get("error") or [""])[0]
     desc = (params.get("error_description") or [""])[0]
-    detail = html.escape(f"{err}: {desc}".strip(": ") or "(brak szczegółów)")
+    detail = html.escape(f"{err}: {desc}".strip(": ") or "(no details)")
 
     body = f"""<!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head><meta charset="utf-8"/><title>mcp.jarvis1.net — Microsoft</title>
 <style>body{{font-family:system-ui,sans-serif;max-width:42rem;margin:2rem;line-height:1.45}}
 code{{background:#f4f4f4;padding:0.15rem 0.35rem}} pre{{background:#111;color:#eee;padding:1rem;overflow:auto;font-size:0.85rem}}</style>
 </head>
 <body>
-<h1>Microsoft — ten adres OAuth na MCP jest wyłączony</h1>
-<p>Logowanie odbywa się teraz <strong>na agencie</strong> (device code): w Telegramie wyślij
-<code>/microsoft-login</code> na bota <strong>jarvis1net</strong>, nie na tej stronie.</p>
-<p>W <strong>Azure Portal</strong> → Twoja aplikacja → <strong>Authentication</strong>:</p>
+<h1>Microsoft — OAuth on this MCP URL is disabled</h1>
+<p>Sign-in now happens on the <strong>agent</strong> (device code): in Telegram send
+<code>/microsoft-login</code> to the <strong>jarvis1net</strong> bot, not on this page.</p>
+<p>In <strong>Azure Portal</strong> → your app → <strong>Authentication</strong>:</p>
 <ul>
-<li>Usuń redirect typu Web wskazujący na <code>mcp.jarvis1.net/.../oauth/callback</code> (nie jest już używany).</li>
-<li>Włącz <strong>Allow public client flows</strong> i w „Mobile and desktop applications”
-dodaj <strong>jeden</strong> redirect <code>https://login.microsoftonline.com/&lt;tenant&gt;/oauth2/nativeclient</code>
-zgodny z tenantem w agencie (<code>common</code>, <code>organizations</code>, <code>consumers</code> lub GUID).
-Nie mieszaj wielu segmentów naraz — może to dać <code>invalid_request</code> / brak <code>response_type</code>.</li>
+<li>Remove the Web redirect pointing at <code>mcp.jarvis1.net/.../oauth/callback</code> (no longer used).</li>
+<li>Enable <strong>Allow public client flows</strong> and under “Mobile and desktop applications”
+add <strong>one</strong> redirect <code>https://login.microsoftonline.com/&lt;tenant&gt;/oauth2/nativeclient</code>
+matching the agent tenant (<code>common</code>, <code>organizations</code>, <code>consumers</code>, or GUID).
+Do not mix multiple segments at once — that can yield <code>invalid_request</code> / missing <code>response_type</code>.</li>
 </ul>
-<p>Parametry z przekierowania (do debugowania):</p>
-<pre>{html.escape(qs[:2000]) if qs else "(puste)"}</pre>
-<p>Skrót błędu: {detail}</p>
+<p>Redirect query (for debugging):</p>
+<pre>{html.escape(qs[:2000]) if qs else "(empty)"}</pre>
+<p>Error summary: {detail}</p>
 </body>
 </html>"""
     return HTMLResponse(content=body, status_code=200)
