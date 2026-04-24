@@ -383,6 +383,37 @@ TOOL_SPECS: dict[str, ToolSpec] = {
         ),
         runner=ms_ops.microsoft_calendar_list_events,
     ),
+    "microsoft_calendar_events_on_date": ToolSpec(
+        name="microsoft_calendar_events_on_date",
+        scope="microsoft",
+        schema=_schema(
+            name="microsoft_calendar_events_on_date",
+            description=(
+                "**Best for “what’s on my calendar on {one calendar day}?”** — one Graph `GET /me/calendarView` call "
+                "for **[start_of_day, start_of_next_day)** in `time_zone` (IANA), including **all-day** events. "
+                "Prefer this over many `microsoft_graph_api` retries with different URL casing or `/me/events?$filter` "
+                "(filters often miss all-day items)."
+            ),
+            properties={
+                "date": {
+                    "type": "string",
+                    "description": "Calendar day to list, format **YYYY-MM-DD** (interpreted in `time_zone`).",
+                },
+                "time_zone": {
+                    "type": "string",
+                    "description": "IANA timezone for that calendar day (default **Europe/Warsaw**).",
+                    "default": "Europe/Warsaw",
+                },
+                "top": {
+                    "type": "integer",
+                    "description": "Max rows (1..50, default 50). Use @odata.nextLink from the JSON if truncated.",
+                    "default": 50,
+                },
+            },
+            required=["date"],
+        ),
+        runner=ms_ops.microsoft_calendar_events_on_date,
+    ),
     "microsoft_onedrive_list_root": ToolSpec(
         name="microsoft_onedrive_list_root",
         scope="microsoft",

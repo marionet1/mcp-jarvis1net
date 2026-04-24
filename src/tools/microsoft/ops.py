@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 
@@ -218,6 +219,37 @@ def microsoft_calendar_list_events(args: dict[str, Any], auth: ApiKeyAuth) -> di
         {
             "startDateTime": _graph_calendarview_utc(start),
             "endDateTime": _graph_calendarview_utc(end),
+            "$top": str(top),
+            "$orderby": "start/dateTime",
+            "$select": "id,subject,start,end,organizer,isCancelled,isAllDay,location,showAs",
+        },
+    )
+
+
+def microsoft_calendar_events_on_date(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
+    """Jedno wywołanie: wszystkie wystąpienia (w tym całodniowe) w danym dniu kalendarzowym w wybranej strefie IANA."""
+    _ = auth
+    date_raw = str(args.get("date", "")).strip()
+    tz_name = str(args.get("time_zone", "Europe/Warsaw")).strip() or "Europe/Warsaw"
+    try:
+        day = datetime.strptime(date_raw, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD (Gregorian)")
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception:
+        raise HTTPException(status_code=400, detail=f"invalid IANA time_zone: {tz_name!r}")
+    top = int(args.get("top", 50))
+    top = min(max(top, 1), 50)
+    start_local = datetime(day.year, day.month, day.day, 0, 0, 0, tzinfo=tz)
+    end_local = start_local + timedelta(days=1)
+    start_utc = start_local.astimezone(timezone.utc)
+    end_utc = end_local.astimezone(timezone.utc)
+    return graph_get(
+        "/me/calendarView",
+        {
+            "startDateTime": _graph_calendarview_utc(start_utc),
+            "endDateTime": _graph_calendarview_utc(end_utc),
             "$top": str(top),
             "$orderby": "start/dateTime",
             "$select": "id,subject,start,end,organizer,isCancelled,isAllDay,location,showAs",

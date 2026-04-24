@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from typing import Any
-from urllib.parse import quote, unquote
+from urllib.parse import parse_qsl, quote, unquote
 
 import httpx
 from fastapi import HTTPException
@@ -36,6 +36,41 @@ def _safe_me_path(path: str) -> str:
     if ".." in p or "\n" in p or "\r" in p:
         raise HTTPException(status_code=400, detail="invalid path")
     return p
+
+
+def _split_me_path_and_query(path: str) -> tuple[str, dict[str, str]]:
+    """Rozdziela ścieżkę `/me/...` od query wklejonego w `path` (model często podaje całość w jednym stringu)."""
+    p = path.strip()
+    if "?" not in p:
+        return p, {}
+    base, qs = p.split("?", 1)
+    merged: dict[str, str] = {}
+    for k, v in parse_qsl(qs, keep_blank_values=True):
+        merged[str(k)] = str(v)
+    return base, merged
+
+
+def _canonical_graph_query_key(key: str) -> str:
+    """Graph OData: `StartDateTime` / `startdatetime` musi być dokładnie `startDateTime` — inaczej Graph ignoruje filtr."""
+    k = str(key).strip()
+    if not k:
+        return k
+    if k.startswith("$"):
+        return "$" + k[1:].lower()
+    low = k.lower()
+    if low == "startdatetime":
+        return "startDateTime"
+    if low == "enddatetime":
+        return "endDateTime"
+    return k
+
+
+def _normalize_graph_query_dict(q: dict[str, Any]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for raw_k, raw_v in q.items():
+        nk = _canonical_graph_query_key(str(raw_k))
+        out[nk] = str(raw_v)
+    return out
 
 
 def _encode_graph_me_path(path: str) -> str:
@@ -77,13 +112,19 @@ def graph_api(
     token = get_graph_bearer()
     if not token:
         raise HTTPException(status_code=401, detail=_MISSING_TOKEN_DETAIL)
-    safe_path = _encode_graph_me_path(_safe_me_path(path))
+    path_stripped = path.strip()
+    base_path, embedded_q = _split_me_path_and_query(path_stripped)
+    merged_q: dict[str, Any] = dict(embedded_q)
+    if query:
+        merged_q.update(query)
+    params_norm = _normalize_graph_query_dict(merged_q) if merged_q else {}
+    safe_path = _encode_graph_me_path(_safe_me_path(base_path))
     m = method.strip().upper()
     if m not in ("GET", "POST", "PATCH", "PUT", "DELETE"):
         raise HTTPException(status_code=400, detail="method must be GET, POST, PATCH, PUT, or DELETE")
     url = f"{GRAPH_ROOT}{safe_path}"
     headers: dict[str, str] = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
-    params = query or {}
+    params = params_norm or None
     with httpx.Client(timeout=120.0) as client:
         if m in ("POST", "PATCH", "PUT") and body is not None:
             raw = json.dumps(body, ensure_ascii=False)
