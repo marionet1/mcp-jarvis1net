@@ -326,6 +326,32 @@ TOOL_SPECS: dict[str, ToolSpec] = {
         ),
         runner=ms_ops.microsoft_mail_list_inbox_tree,
     ),
+    "microsoft_mail_list_unread_inbox_tree": ToolSpec(
+        name="microsoft_mail_list_unread_inbox_tree",
+        scope="microsoft",
+        schema=_schema(
+            name="microsoft_mail_list_unread_inbox_tree",
+            description=(
+                "Lists **unread** messages (`isRead eq false`) for **Inbox root and each first-level subfolder** "
+                "under Inbox (one result page per folder; use `messages.@odata.nextLink` in the response for more). "
+                "Prefer this over manual `$filter` when the user asks for unread mail across Inbox and its subfolders."
+            ),
+            properties={
+                "top_per_folder": {
+                    "type": "integer",
+                    "description": "Max unread messages returned per folder (1..50, default 25). Alias: `top`.",
+                    "default": 25,
+                },
+                "max_child_folders": {
+                    "type": "integer",
+                    "description": "Max first-level child folders under Inbox (1..30, default 15).",
+                    "default": 15,
+                },
+            },
+            required=[],
+        ),
+        runner=ms_ops.microsoft_mail_list_unread_inbox_tree,
+    ),
     "microsoft_mail_mark_read": ToolSpec(
         name="microsoft_mail_mark_read",
         scope="microsoft",

@@ -103,6 +103,73 @@ def microsoft_mail_list_inbox_tree(args: dict[str, Any], auth: ApiKeyAuth) -> di
     }
 
 
+def microsoft_mail_list_unread_inbox_tree(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
+    """
+    Inbox root + first-level subfolders: unread messages only (isRead eq false), first page per folder.
+    """
+    _ = auth
+    top = int(args.get("top_per_folder", args.get("top", 25)))
+    top = min(max(top, 1), 50)
+    max_children = int(args.get("max_child_folders", 15))
+    max_children = min(max(max_children, 1), 30)
+
+    inbox_meta = graph_get("/me/mailFolders/inbox", {"$select": "id,displayName,unreadItemCount"})
+    if not isinstance(inbox_meta, dict) or not inbox_meta.get("id"):
+        raise HTTPException(status_code=502, detail="Graph did not return Inbox folder id")
+    inbox_id = str(inbox_meta["id"])
+    sel = "id,subject,receivedDateTime,isRead,from"
+    q_msg: dict[str, Any] = {
+        "$filter": "isRead eq false",
+        "$top": str(top),
+        "$select": sel,
+    }
+
+    folders_out: list[dict[str, Any]] = []
+    root_msgs = graph_get(f"/me/mailFolders/{inbox_id}/messages", q_msg)
+    folders_out.append(
+        {
+            "folder_id": inbox_id,
+            "displayName": inbox_meta.get("displayName") or "Inbox",
+            "unreadItemCount": inbox_meta.get("unreadItemCount"),
+            "messages": root_msgs,
+        }
+    )
+
+    children = graph_get(
+        "/me/mailFolders/inbox/childFolders",
+        {"$select": "id,displayName,unreadItemCount", "$top": str(max_children)},
+    )
+    child_list = children.get("value") if isinstance(children, dict) else None
+    if not isinstance(child_list, list):
+        child_list = []
+    truncated = bool(isinstance(children, dict) and children.get("@odata.nextLink"))
+
+    for ch in child_list:
+        if not isinstance(ch, dict):
+            continue
+        fid = str(ch.get("id") or "").strip()
+        if not fid:
+            continue
+        sub = graph_get(f"/me/mailFolders/{fid}/messages", q_msg)
+        folders_out.append(
+            {
+                "folder_id": fid,
+                "displayName": ch.get("displayName"),
+                "unreadItemCount": ch.get("unreadItemCount"),
+                "messages": sub,
+            }
+        )
+
+    return {
+        "note": (
+            "Unread only (`isRead eq false`). First page per folder (see each `messages.@odata.nextLink` for more). "
+            "First-level subfolders under Inbox only; nested levels not expanded."
+        ),
+        "child_folders_page_truncated": truncated,
+        "folders": folders_out,
+    }
+
+
 def microsoft_mail_mark_read(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     """PATCH isRead=true for many message ids (one HTTP call per id; returns per-id status)."""
     _ = auth
