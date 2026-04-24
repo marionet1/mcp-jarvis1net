@@ -58,13 +58,10 @@ Paths are relative to the base URL:
 | `filesystem` | POST | `/v1/tools/filesystem/delete` | JSON: `path` (file or empty directory) |
 | `filesystem` | POST | `/v1/tools/filesystem/rename` | JSON: `from_path`, `to_path` |
 | `shell` | POST | `/v1/tools/shell/run` | JSON diagnostics action (`disk_usage`, `memory_usage`, `cpu_load`, `uptime`, `ping`) |
-| `microsoft` | GET | `/v1/tools/microsoft/oauth/start` | Start delegated Microsoft login (requires Bearer key + `microsoft` scope; returns 302) |
-| `microsoft` | GET | `/v1/tools/microsoft/oauth/callback` | OAuth redirect target (public; validates `state`) |
 | `microsoft` | (tool) | `microsoft_*` via `/v1/tools/call` | Graph helpers: profile, inbox messages, calendar events, OneDrive root listing |
-| `outlook` | GET | `/v1/tools/outlook/status` | Status stub |
 | `sse` | GET | `/sse` | SSE stream |
 
-Endpoint access depends on scopes assigned to your key (`filesystem`, `shell`, `outlook`, `microsoft`, `sse`, or `*` for all).  
+Endpoint access depends on scopes assigned to your key (`filesystem`, `shell`, `microsoft`, `sse`, or `*` for all).  
 The `meta` tool `mcp_refresh_tool_manifest` is available to **any valid API key** (it only returns the same filtered manifest as `GET /v1/tools`).  
 A `403` scope error means your key does not include the requested permission.
 
@@ -117,14 +114,23 @@ curl -sS -X POST "https://mcp.jarvis1.net/v1/tools/call" \
   -d '{"name":"shell_run_diagnostic","arguments":{"action":"disk_usage"}}'
 ```
 
-**Microsoft Graph (operator):** set `MICROSOFT_*` variables in `.env` (see `.env.example`), add **`microsoft`** to the API key scopes, then link an account:
+**Microsoft Graph:** each caller should obtain a **delegated** Microsoft access token (for example in the **agent** process, using your Azure app registration and the end user’s login). Send it on every `microsoft_*` tool call:
 
-```bash
-curl -sS -I -H "Authorization: Bearer YOUR_KEY" \
-  "https://mcp.jarvis1.net/v1/tools/microsoft/oauth/start"
+```http
+X-Graph-Authorization: Bearer <access_token>
 ```
 
-Follow the `Location` redirect in a browser, sign in, then call tools such as `microsoft_graph_me` via `/v1/tools/call`.
+The MCP server **never** stores Azure app registration secrets or Microsoft refresh tokens; it only forwards the bearer token from this header to Microsoft Graph. Calls without the header get `401` for Graph-backed tools.
+
+Example:
+
+```bash
+curl -sS -X POST "https://mcp.jarvis1.net/v1/tools/call" \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "X-Graph-Authorization: Bearer MS_GRAPH_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"microsoft_graph_me","arguments":{}}'
+```
 
 ---
 
@@ -133,4 +139,4 @@ Follow the `Location` redirect in a browser, sign in, then call tools such as `m
 - Keys are stored server-side as **hashes** and cannot be recovered from the database.
 - File read/write size limits are enforced on the server.
 - Access is restricted to allowed filesystem roots on this hosted instance.
-- Microsoft tokens are stored only on the server path from `MICROSOFT_TOKEN_CACHE_PATH` (never commit that file).
+- **`microsoft_*` tools** require **`X-Graph-Authorization`** on each `/v1/tools/call`; configure OAuth and Azure credentials only on your **agent**, not on MCP.

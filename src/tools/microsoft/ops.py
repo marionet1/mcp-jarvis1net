@@ -5,12 +5,23 @@ from typing import Any
 from src.deps import ApiKeyAuth
 
 from .graph import graph_get
-from .msal_client import linked_account_summary
+from .graph_context import get_graph_bearer
 
 
 def microsoft_integration_status(_: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     _ = auth
-    return linked_account_summary()
+    if get_graph_bearer():
+        return {
+            "ready": True,
+            "message": "Microsoft Graph access token is present (X-Graph-Authorization). MCP has no Azure app credentials.",
+        }
+    return {
+        "ready": False,
+        "message": (
+            "No token on this request. The agent must obtain a delegated Graph access token using its own Azure "
+            "registration and send X-Graph-Authorization on every microsoft_* tool call."
+        ),
+    }
 
 
 def microsoft_graph_me(_: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:

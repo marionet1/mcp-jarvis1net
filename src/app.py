@@ -11,8 +11,6 @@ from fastapi.responses import PlainTextResponse, StreamingResponse
 
 from src.deps import DATABASE_URL, ApiKeyAuth, ensure_db_schema, require_api_key
 from src.tools.filesystem.routes import router as filesystem_router
-from src.tools.microsoft.routes import router as microsoft_router
-from src.tools.outlook.routes import router as outlook_router
 from src.tools.routes import router as tools_router
 from src.tools.shell.routes import router as shell_router
 
@@ -25,9 +23,7 @@ app = FastAPI(
     openapi_url=None,
 )
 app.include_router(filesystem_router)
-app.include_router(outlook_router)
 app.include_router(shell_router)
-app.include_router(microsoft_router)
 app.include_router(tools_router)
 
 

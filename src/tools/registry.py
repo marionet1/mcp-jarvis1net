@@ -18,7 +18,7 @@ from src.tools.filesystem.routes import (
 )
 from src.tools.filesystem.schemas import DeleteBody, MkdirBody, RenameBody, WriteBody
 from src.tools.microsoft import ops as ms_ops
-from src.tools.outlook.routes import outlook_status
+from src.tools.microsoft.graph_context import set_graph_bearer
 from src.tools.shell.routes import ShellRunBody, run_shell
 
 
@@ -120,11 +120,6 @@ def _shell_run(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     )
     _ = auth
     return run_shell(body)
-
-
-def _outlook_status(_: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
-    _ = auth
-    return outlook_status()
 
 
 def _mcp_refresh_tool_manifest(_: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
@@ -257,25 +252,14 @@ TOOL_SPECS: dict[str, ToolSpec] = {
         ),
         runner=_shell_run,
     ),
-    "outlook_status": ToolSpec(
-        name="outlook_status",
-        scope="outlook",
-        schema=_schema(
-            name="outlook_status",
-            description="Returns Outlook integration status (currently stub).",
-            properties={},
-            required=[],
-        ),
-        runner=_outlook_status,
-    ),
     "microsoft_integration_status": ToolSpec(
         name="microsoft_integration_status",
         scope="microsoft",
         schema=_schema(
             name="microsoft_integration_status",
             description=(
-                "Returns whether Microsoft Graph OAuth is configured and whether a user token is stored. "
-                "Call before other microsoft_* tools if login may be missing."
+                "Returns whether this request includes a Microsoft Graph bearer token (X-Graph-Authorization). "
+                "MCP does not configure Azure; tokens come from the agent. Safe to call before other microsoft_* tools."
             ),
             properties={},
             required=[],
@@ -362,11 +346,21 @@ def manifest_for_auth(auth: ApiKeyAuth) -> list[dict[str, Any]]:
     return tools
 
 
-def run_tool_call(name: str, arguments: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
+def run_tool_call(
+    name: str,
+    arguments: dict[str, Any],
+    auth: ApiKeyAuth,
+    *,
+    graph_access_token: str | None = None,
+) -> dict[str, Any]:
     spec = TOOL_SPECS.get(name)
     if spec is None:
         raise HTTPException(status_code=404, detail=f"Unknown tool: {name}")
     if not auth.allows(spec.scope):
         raise HTTPException(status_code=403, detail=f"API key is not allowed to use: {spec.scope}")
-    return spec.runner(arguments or {}, auth)
+    set_graph_bearer(graph_access_token)
+    try:
+        return spec.runner(arguments or {}, auth)
+    finally:
+        set_graph_bearer(None)
 
