@@ -259,7 +259,10 @@ TOOL_SPECS: dict[str, ToolSpec] = {
             name="microsoft_integration_status",
             description=(
                 "Returns whether this request includes a Microsoft Graph bearer token (X-Graph-Authorization). "
-                "MCP does not configure Azure; tokens come from the agent. Safe to call before other microsoft_* tools."
+                "MCP does not configure Azure; tokens come from the agent. "
+                "**Optional diagnostic only** (e.g. user asks if Graph auth is wired, or after a missing-token error). "
+                "**Do not** call this as a routine preamble before every other microsoft_* tool — call the tool that "
+                "actually performs the task (e.g. `microsoft_graph_me`, `microsoft_graph_api`)."
             ),
             properties={},
             required=[],
