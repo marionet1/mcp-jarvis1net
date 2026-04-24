@@ -107,6 +107,7 @@ def graph_api(
     *,
     query: dict[str, Any] | None = None,
     body: dict[str, Any] | list[Any] | None = None,
+    extra_headers: dict[str, str] | None = None,
 ) -> Any:
     """HTTP call to Graph v1.0; path restricted to /me/... for delegated safety on shared MCP."""
     token = get_graph_bearer()
@@ -124,6 +125,10 @@ def graph_api(
         raise HTTPException(status_code=400, detail="method must be GET, POST, PATCH, PUT, or DELETE")
     url = f"{GRAPH_ROOT}{safe_path}"
     headers: dict[str, str] = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    if extra_headers:
+        for hk, hv in extra_headers.items():
+            if hk.strip() and hv.strip():
+                headers[hk.strip()] = hv.strip()
     params = params_norm or None
     with httpx.Client(timeout=120.0) as client:
         if m in ("POST", "PATCH", "PUT") and body is not None:
@@ -166,8 +171,10 @@ def graph_get_absolute(url: str) -> Any:
     return {"status_code": resp.status_code, "text": (resp.text or "")[:8000]}
 
 
-def graph_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-    data = graph_api("GET", path, query=params or {})
+def graph_get(
+    path: str, params: dict[str, Any] | None = None, *, extra_headers: dict[str, str] | None = None
+) -> dict[str, Any]:
+    data = graph_api("GET", path, query=params or {}, extra_headers=extra_headers)
     if not isinstance(data, dict):
         raise HTTPException(status_code=502, detail="Graph GET returned non-object JSON")
     return data

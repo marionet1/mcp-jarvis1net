@@ -352,6 +352,39 @@ TOOL_SPECS: dict[str, ToolSpec] = {
         ),
         runner=ms_ops.microsoft_mail_list_unread_inbox_tree,
     ),
+    "microsoft_mail_search_messages": ToolSpec(
+        name="microsoft_mail_search_messages",
+        scope="microsoft",
+        schema=_schema(
+            name="microsoft_mail_search_messages",
+            description=(
+                "Searches **all accessible mail** via Graph **GET /me/messages?$search=...** (indexed: subject, body, from, etc.). "
+                "Requires Mail.Read. Use when the user asks for mail **by topic / sender / keywords** (e.g. Otodom, Białołęka, mieszkanie) "
+                "instead of browsing one folder. Returns **bodyPreview** by default so you can decide which rows match; "
+                "fetch full **body** only for selected ids via **`microsoft_graph_api`** GET `/me/messages/{id}?$select=body`. "
+                "You craft **query** from the user’s language (Polish terms are fine). For boolean KQL-style strings, pass **query** "
+                "already quoted / with AND/OR (see Microsoft Graph $search for messages)."
+            ),
+            properties={
+                "query": {
+                    "type": "string",
+                    "description": "Search string (keywords or Graph message $search syntax).",
+                },
+                "top": {
+                    "type": "integer",
+                    "description": "Max messages to return (1..50, default 20).",
+                    "default": 20,
+                },
+                "include_body_preview": {
+                    "type": "boolean",
+                    "description": "Include bodyPreview in $select (default true). Set false for metadata-only.",
+                    "default": True,
+                },
+            },
+            required=["query"],
+        ),
+        runner=ms_ops.microsoft_mail_search_messages,
+    ),
     "microsoft_mail_mark_read": ToolSpec(
         name="microsoft_mail_mark_read",
         scope="microsoft",

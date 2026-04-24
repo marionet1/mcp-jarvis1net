@@ -170,6 +170,64 @@ def microsoft_mail_list_unread_inbox_tree(args: dict[str, Any], auth: ApiKeyAuth
     }
 
 
+def _graph_message_search_value(q: str) -> str:
+    """Build $search parameter: wrap simple phrases in quotes; pass through if already quoted or KQL-like."""
+    q2 = " ".join(q.strip().split())
+    if not q2:
+        return q2
+    if len(q2) > 400:
+        raise HTTPException(status_code=400, detail="query too long (max 400 characters)")
+    if "\n" in q2 or "\r" in q2:
+        raise HTTPException(status_code=400, detail="query must not contain line breaks")
+    if len(q2) >= 2 and q2[0] == '"' and q2[-1] == '"':
+        return q2
+    low = q2.lower()
+    if " and " in low or " or " in low or ":" in q2:
+        return q2
+    inner = q2.replace('"', " ")
+    inner = " ".join(inner.split())
+    return f'"{inner}"'
+
+
+def microsoft_mail_search_messages(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
+    """
+    GET /me/messages?$search=... with ConsistencyLevel: eventual (body/subject/from search index).
+    The agent should filter semantically using subject/from/bodyPreview; full body via microsoft_graph_api if needed.
+    """
+    _ = auth
+    raw = args.get("query") or args.get("q")
+    if not isinstance(raw, str) or not raw.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="query (or q) is required: keywords or Graph message search string (e.g. Otodom Białołęka, or quoted / AND syntax).",
+        )
+    search_val = _graph_message_search_value(raw)
+    top = int(args.get("top", 20))
+    top = min(max(top, 1), 50)
+    raw_prev = args.get("include_body_preview", True)
+    if isinstance(raw_prev, str):
+        include_preview = raw_prev.strip().lower() in ("1", "true", "yes", "on")
+    else:
+        include_preview = bool(raw_prev)
+    sel = "id,subject,from,receivedDateTime,isRead"
+    if include_preview:
+        sel += ",bodyPreview"
+    data = graph_api(
+        "GET",
+        "/me/messages",
+        query={"$search": search_val, "$top": str(top), "$select": sel},
+        extra_headers={"ConsistencyLevel": "eventual"},
+    )
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=502, detail="Graph search returned non-object JSON")
+    data["note"] = (
+        "$search uses the mailbox index (subject, body, from, etc.). Semantics (e.g. “is this an Otodom flat in Białołęka?”) "
+        "are for the agent: use bodyPreview and from; fetch full body with microsoft_graph_api GET /me/messages/{id} "
+        "only for messages you need to confirm."
+    )
+    return data
+
+
 def microsoft_mail_mark_read(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     """PATCH isRead=true for many message ids (one HTTP call per id; returns per-id status)."""
     _ = auth
