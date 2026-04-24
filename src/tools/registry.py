@@ -322,6 +322,42 @@ TOOL_SPECS: dict[str, ToolSpec] = {
         ),
         runner=ms_ops.microsoft_onedrive_list_root,
     ),
+    "microsoft_graph_api": ToolSpec(
+        name="microsoft_graph_api",
+        scope="microsoft",
+        schema=_schema(
+            name="microsoft_graph_api",
+            description=(
+                "Low-level Microsoft Graph v1.0 call for the signed-in user. "
+                "`path` must start with `/me` or `/me/...` (mailFolders, messages, sendMail, calendar/events, drive, …). "
+                "Use GET+query for reads; POST/PATCH/DELETE+body for writes (e.g. send mail, create/update/delete event, upload file). "
+                "Requires matching delegated scopes on the token (Mail.ReadWrite, Mail.Send, Calendars.ReadWrite, Files.ReadWrite.All)."
+            ),
+            properties={
+                "method": {
+                    "type": "string",
+                    "enum": ["GET", "POST", "PATCH", "PUT", "DELETE"],
+                    "description": "HTTP method.",
+                },
+                "path": {
+                    "type": "string",
+                    "description": "Graph path starting with /me or /me/...",
+                },
+                "query": {
+                    "type": "object",
+                    "description": "Optional query parameters ($top, $select, etc.).",
+                    "additionalProperties": True,
+                },
+                "body": {
+                    "type": "object",
+                    "description": "JSON object for POST/PATCH/PUT (e.g. sendMail message payload).",
+                    "additionalProperties": True,
+                },
+            },
+            required=["method", "path"],
+        ),
+        runner=ms_ops.microsoft_graph_api,
+    ),
     "mcp_refresh_tool_manifest": ToolSpec(
         name="mcp_refresh_tool_manifest",
         scope="meta",

@@ -4,7 +4,7 @@ from typing import Any
 
 from src.deps import ApiKeyAuth
 
-from .graph import graph_get
+from .graph import graph_api, graph_get
 from .graph_context import get_graph_bearer
 
 
@@ -49,3 +49,24 @@ def microsoft_calendar_list_events(args: dict[str, Any], auth: ApiKeyAuth) -> di
 def microsoft_onedrive_list_root(_: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
     _ = auth
     return graph_get("/me/drive/root/children", {"$top": "50"})
+
+
+def microsoft_graph_api(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
+    """Generic Graph v1 call under /me/... (mail, calendar, drive, profile)."""
+    _ = auth
+    method = str(args.get("method", "GET")).strip()
+    path = str(args.get("path", "")).strip()
+    raw_q = args.get("query")
+    query = raw_q if isinstance(raw_q, dict) else None
+    raw_b = args.get("body")
+    body: dict[str, Any] | list[Any] | None
+    if isinstance(raw_b, dict):
+        body = raw_b
+    elif isinstance(raw_b, list):
+        body = raw_b
+    else:
+        body = None
+    out = graph_api(method, path, query=query, body=body)
+    if isinstance(out, dict):
+        return out
+    return {"data": out}

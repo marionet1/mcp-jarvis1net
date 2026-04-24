@@ -58,7 +58,7 @@ Paths are relative to the base URL:
 | `filesystem` | POST | `/v1/tools/filesystem/delete` | JSON: `path` (file or empty directory) |
 | `filesystem` | POST | `/v1/tools/filesystem/rename` | JSON: `from_path`, `to_path` |
 | `shell` | POST | `/v1/tools/shell/run` | JSON diagnostics action (`disk_usage`, `memory_usage`, `cpu_load`, `uptime`, `ping`) |
-| `microsoft` | (tool) | `microsoft_*` via `/v1/tools/call` | Graph helpers: profile, inbox messages, calendar events, OneDrive root listing |
+| `microsoft` | (tool) | `microsoft_*` via `/v1/tools/call` | Graph: profile, mail/calendar/drive helpers + `microsoft_graph_api` (GET/POST/PATCH/DELETE under `/me/...`) |
 | `sse` | GET | `/sse` | SSE stream |
 
 Endpoint access depends on scopes assigned to your key (`filesystem`, `shell`, `microsoft`, `sse`, or `*` for all).  

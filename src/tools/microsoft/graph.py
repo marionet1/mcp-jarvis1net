@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import httpx
@@ -14,15 +15,65 @@ _MISSING_TOKEN_DETAIL = (
     "Obtain the token on the agent (your Azure app registration + user login); MCP does not store client secrets or tokens."
 )
 
+_MAX_PATH_LEN = 2048
+_MAX_JSON_BODY_BYTES = 512 * 1024
 
-def graph_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+
+def _safe_me_path(path: str) -> str:
+    p = path.strip()
+    if len(p) > _MAX_PATH_LEN:
+        raise HTTPException(status_code=400, detail="path too long")
+    if not p.startswith("/"):
+        p = "/" + p
+    if p != "/me" and not p.startswith("/me/"):
+        raise HTTPException(
+            status_code=400,
+            detail="path must be /me or start with /me/ (delegated Graph for the signed-in user only).",
+        )
+    if ".." in p or "\n" in p or "\r" in p:
+        raise HTTPException(status_code=400, detail="invalid path")
+    return p
+
+
+def graph_api(
+    method: str,
+    path: str,
+    *,
+    query: dict[str, Any] | None = None,
+    body: dict[str, Any] | list[Any] | None = None,
+) -> Any:
+    """HTTP call to Graph v1.0; path restricted to /me/... for delegated safety on shared MCP."""
     token = get_graph_bearer()
     if not token:
         raise HTTPException(status_code=401, detail=_MISSING_TOKEN_DETAIL)
-    url = f"{GRAPH_ROOT}{path}" if path.startswith("/") else f"{GRAPH_ROOT}/{path}"
-    headers = {"Authorization": f"Bearer {token}"}
-    with httpx.Client(timeout=45.0) as client:
-        resp = client.get(url, headers=headers, params=params or {})
+    safe_path = _safe_me_path(path)
+    m = method.strip().upper()
+    if m not in ("GET", "POST", "PATCH", "PUT", "DELETE"):
+        raise HTTPException(status_code=400, detail="method must be GET, POST, PATCH, PUT, or DELETE")
+    url = f"{GRAPH_ROOT}{safe_path}"
+    headers: dict[str, str] = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    params = query or {}
+    with httpx.Client(timeout=120.0) as client:
+        if m in ("POST", "PATCH", "PUT") and body is not None:
+            raw = json.dumps(body, ensure_ascii=False)
+            if len(raw.encode("utf-8")) > _MAX_JSON_BODY_BYTES:
+                raise HTTPException(status_code=400, detail="JSON body exceeds size limit")
+            h2 = {**headers, "Content-Type": "application/json"}
+            resp = client.request(m, url, headers=h2, params=params, content=raw.encode("utf-8"))
+        else:
+            resp = client.request(m, url, headers=headers, params=params)
+    if resp.status_code == 204:
+        return {"ok": True, "status_code": 204}
     if resp.status_code >= 400:
-        raise HTTPException(status_code=resp.status_code, detail=resp.text[:4000])
-    return resp.json()
+        raise HTTPException(status_code=resp.status_code, detail=resp.text[:8000])
+    ct = (resp.headers.get("content-type") or "").lower()
+    if "application/json" in ct and resp.content:
+        return resp.json()
+    return {"status_code": resp.status_code, "text": (resp.text or "")[:8000]}
+
+
+def graph_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    data = graph_api("GET", path, query=params or {})
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=502, detail="Graph GET returned non-object JSON")
+    return data
