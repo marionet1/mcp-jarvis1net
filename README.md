@@ -47,6 +47,8 @@ Paths are relative to the base URL:
 
 | Scope | Method | Path | Description |
 |------------------|--------|---------|------|
+| key-scoped | GET | `/v1/tools` | Returns tool schemas available for your API key |
+| key-scoped | POST | `/v1/tools/call` | Generic tool execution: JSON `{name, arguments}` |
 | `filesystem` | GET | `/v1/tools/filesystem/list` | Directory listing (`?path=`) |
 | `filesystem` | GET | `/v1/tools/filesystem/stat` | Path metadata (`?path=`) |
 | `filesystem` | GET | `/v1/tools/filesystem/read` | Read text file (`?path=`, optional `max_bytes`) |
@@ -54,10 +56,11 @@ Paths are relative to the base URL:
 | `filesystem` | POST | `/v1/tools/filesystem/mkdir` | JSON: `path`, `parents` |
 | `filesystem` | POST | `/v1/tools/filesystem/delete` | JSON: `path` (file or empty directory) |
 | `filesystem` | POST | `/v1/tools/filesystem/rename` | JSON: `from_path`, `to_path` |
+| `shell` | POST | `/v1/tools/shell/run` | JSON diagnostics action (`disk_usage`, `memory_usage`, `cpu_load`, `uptime`, `ping`) |
 | `outlook` | GET | `/v1/tools/outlook/status` | Status stub |
 | `sse` | GET | `/sse` | SSE stream |
 
-Endpoint access depends on scopes assigned to your key (`filesystem`, `outlook`, `sse`, or `*` for all).  
+Endpoint access depends on scopes assigned to your key (`filesystem`, `shell`, `outlook`, `sse`, or `*` for all).  
 A `403` scope error means your key does not include the requested permission.
 
 ---
@@ -82,6 +85,31 @@ curl -sS -H "Authorization: Bearer YOUR_KEY" \
 ```bash
 curl -sS -H "Authorization: Bearer YOUR_KEY" \
   "https://mcp.jarvis1.net/v1/tools/filesystem/read?path=/path/to/file.txt"
+```
+
+**Shell diagnostic (disk usage):**
+
+```bash
+curl -sS -X POST "https://mcp.jarvis1.net/v1/tools/shell/run" \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"disk_usage"}'
+```
+
+**Get tool manifest (recommended for agents):**
+
+```bash
+curl -sS -H "Authorization: Bearer YOUR_KEY" \
+  "https://mcp.jarvis1.net/v1/tools"
+```
+
+**Call tool generically (recommended for agents):**
+
+```bash
+curl -sS -X POST "https://mcp.jarvis1.net/v1/tools/call" \
+  -H "Authorization: Bearer YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"shell_run_diagnostic","arguments":{"action":"disk_usage"}}'
 ```
 
 ---

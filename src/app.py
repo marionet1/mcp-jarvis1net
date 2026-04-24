@@ -12,6 +12,8 @@ from fastapi.responses import PlainTextResponse, StreamingResponse
 from src.deps import DATABASE_URL, ApiKeyAuth, ensure_db_schema, require_api_key
 from src.tools.filesystem.routes import router as filesystem_router
 from src.tools.outlook.routes import router as outlook_router
+from src.tools.routes import router as tools_router
+from src.tools.shell.routes import router as shell_router
 
 APP_NAME = os.getenv("MCP_SERVER_NAME", "mcp-jarvis1net")
 
@@ -23,6 +25,8 @@ app = FastAPI(
 )
 app.include_router(filesystem_router)
 app.include_router(outlook_router)
+app.include_router(shell_router)
+app.include_router(tools_router)
 
 
 @app.on_event("startup")
