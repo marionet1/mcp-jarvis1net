@@ -58,10 +58,13 @@ Paths are relative to the base URL:
 | `filesystem` | POST | `/v1/tools/filesystem/delete` | JSON: `path` (file or empty directory) |
 | `filesystem` | POST | `/v1/tools/filesystem/rename` | JSON: `from_path`, `to_path` |
 | `shell` | POST | `/v1/tools/shell/run` | JSON diagnostics action (`disk_usage`, `memory_usage`, `cpu_load`, `uptime`, `ping`) |
+| `microsoft` | GET | `/v1/tools/microsoft/oauth/start` | Start delegated Microsoft login (requires Bearer key + `microsoft` scope; returns 302) |
+| `microsoft` | GET | `/v1/tools/microsoft/oauth/callback` | OAuth redirect target (public; validates `state`) |
+| `microsoft` | (tool) | `microsoft_*` via `/v1/tools/call` | Graph helpers: profile, inbox messages, calendar events, OneDrive root listing |
 | `outlook` | GET | `/v1/tools/outlook/status` | Status stub |
 | `sse` | GET | `/sse` | SSE stream |
 
-Endpoint access depends on scopes assigned to your key (`filesystem`, `shell`, `outlook`, `sse`, or `*` for all).  
+Endpoint access depends on scopes assigned to your key (`filesystem`, `shell`, `outlook`, `microsoft`, `sse`, or `*` for all).  
 The `meta` tool `mcp_refresh_tool_manifest` is available to **any valid API key** (it only returns the same filtered manifest as `GET /v1/tools`).  
 A `403` scope error means your key does not include the requested permission.
 
@@ -114,6 +117,15 @@ curl -sS -X POST "https://mcp.jarvis1.net/v1/tools/call" \
   -d '{"name":"shell_run_diagnostic","arguments":{"action":"disk_usage"}}'
 ```
 
+**Microsoft Graph (operator):** set `MICROSOFT_*` variables in `.env` (see `.env.example`), add **`microsoft`** to the API key scopes, then link an account:
+
+```bash
+curl -sS -I -H "Authorization: Bearer YOUR_KEY" \
+  "https://mcp.jarvis1.net/v1/tools/microsoft/oauth/start"
+```
+
+Follow the `Location` redirect in a browser, sign in, then call tools such as `microsoft_graph_me` via `/v1/tools/call`.
+
 ---
 
 ## Limits and security
@@ -121,3 +133,4 @@ curl -sS -X POST "https://mcp.jarvis1.net/v1/tools/call" \
 - Keys are stored server-side as **hashes** and cannot be recovered from the database.
 - File read/write size limits are enforced on the server.
 - Access is restricted to allowed filesystem roots on this hosted instance.
+- Microsoft tokens are stored only on the server path from `MICROSOFT_TOKEN_CACHE_PATH` (never commit that file).

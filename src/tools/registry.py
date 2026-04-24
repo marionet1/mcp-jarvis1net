@@ -17,6 +17,7 @@ from src.tools.filesystem.routes import (
     write_file,
 )
 from src.tools.filesystem.schemas import DeleteBody, MkdirBody, RenameBody, WriteBody
+from src.tools.microsoft import ops as ms_ops
 from src.tools.outlook.routes import outlook_status
 from src.tools.shell.routes import ShellRunBody, run_shell
 
@@ -266,6 +267,76 @@ TOOL_SPECS: dict[str, ToolSpec] = {
             required=[],
         ),
         runner=_outlook_status,
+    ),
+    "microsoft_integration_status": ToolSpec(
+        name="microsoft_integration_status",
+        scope="microsoft",
+        schema=_schema(
+            name="microsoft_integration_status",
+            description=(
+                "Returns whether Microsoft Graph OAuth is configured and whether a user token is stored. "
+                "Call before other microsoft_* tools if login may be missing."
+            ),
+            properties={},
+            required=[],
+        ),
+        runner=ms_ops.microsoft_integration_status,
+    ),
+    "microsoft_graph_me": ToolSpec(
+        name="microsoft_graph_me",
+        scope="microsoft",
+        schema=_schema(
+            name="microsoft_graph_me",
+            description="Reads the signed-in Microsoft profile via Graph GET /me.",
+            properties={},
+            required=[],
+        ),
+        runner=ms_ops.microsoft_graph_me,
+    ),
+    "microsoft_mail_list_messages": ToolSpec(
+        name="microsoft_mail_list_messages",
+        scope="microsoft",
+        schema=_schema(
+            name="microsoft_mail_list_messages",
+            description="Lists recent messages from the signed-in user's Inbox (metadata only).",
+            properties={
+                "top": {
+                    "type": "integer",
+                    "description": "Max messages to return (1..50, default 10).",
+                    "default": 10,
+                }
+            },
+            required=[],
+        ),
+        runner=ms_ops.microsoft_mail_list_messages,
+    ),
+    "microsoft_calendar_list_events": ToolSpec(
+        name="microsoft_calendar_list_events",
+        scope="microsoft",
+        schema=_schema(
+            name="microsoft_calendar_list_events",
+            description="Lists upcoming calendar events for the signed-in user (metadata).",
+            properties={
+                "top": {
+                    "type": "integer",
+                    "description": "Max events to return (1..50, default 10).",
+                    "default": 10,
+                }
+            },
+            required=[],
+        ),
+        runner=ms_ops.microsoft_calendar_list_events,
+    ),
+    "microsoft_onedrive_list_root": ToolSpec(
+        name="microsoft_onedrive_list_root",
+        scope="microsoft",
+        schema=_schema(
+            name="microsoft_onedrive_list_root",
+            description="Lists children of the signed-in user's OneDrive root folder (up to 50 items).",
+            properties={},
+            required=[],
+        ),
+        runner=ms_ops.microsoft_onedrive_list_root,
     ),
     "mcp_refresh_tool_manifest": ToolSpec(
         name="mcp_refresh_tool_manifest",

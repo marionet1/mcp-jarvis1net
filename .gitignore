@@ -10,3 +10,5 @@ __pycache__/
 .DS_Store
 Thumbs.db
 .generated_api_key
+data/
+logs/
