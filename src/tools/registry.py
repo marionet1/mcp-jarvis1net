@@ -300,11 +300,11 @@ TOOL_SPECS: dict[str, ToolSpec] = {
         schema=_schema(
             name="microsoft_mail_mark_read",
             description=(
-                "Marks many mail messages as read in one tool call: PATCHes each Graph message id with "
-                "`{\"isRead\": true}`. Use after a GET that returns `value` with `id` fields — pass **every** id from "
-                "`value` (up to 40 per call). Optional `mail_folder_id`: if messages live under a specific folder, "
-                "set it to that folder's id so PATCH uses `/me/mailFolders/{id}/messages/{messageId}` (sometimes "
-                "more reliable than `/me/messages/{id}` for linked accounts). Requires Mail.ReadWrite."
+                "Marks many mail messages as read: PATCHes `{\"isRead\": true}` per id. "
+                "Primary path is **PATCH /me/messages/{id}** (Graph canonical). Optional `mail_folder_id` is only used "
+                "as a **fallback** if that PATCH returns 404. Pass every `value[].id` from your GET (up to 40). "
+                "To mark **all** unread in one folder without manual paging, use **`microsoft_mail_mark_folder_read`** instead. "
+                "Requires Mail.ReadWrite."
             ),
             properties={
                 "message_ids": {
@@ -316,12 +316,38 @@ TOOL_SPECS: dict[str, ToolSpec] = {
                 },
                 "mail_folder_id": {
                     "type": "string",
-                    "description": "Optional mailFolder id when PATCH should be folder-scoped (same folder as the GET).",
+                    "description": "Optional folder id — used only if PATCH /me/messages/{id} returns 404 (retry folder-scoped).",
                 },
             },
             required=["message_ids"],
         ),
         runner=ms_ops.microsoft_mail_mark_read,
+    ),
+    "microsoft_mail_mark_folder_read": ToolSpec(
+        name="microsoft_mail_mark_folder_read",
+        scope="microsoft",
+        schema=_schema(
+            name="microsoft_mail_mark_folder_read",
+            description=(
+                "Marks **every** unread message in one mail folder as read: pages through `isRead eq false` results "
+                "via **@odata.nextLink** (no `$skip`), then PATCHes each id with `/me/messages/{id}`. "
+                "Use when the user wants the whole folder cleared without listing ids manually. "
+                "For multiple folders, call once per `mail_folder_id`. Max ~500 messages per call. Requires Mail.ReadWrite."
+            ),
+            properties={
+                "mail_folder_id": {
+                    "type": "string",
+                    "description": "Graph mailFolder id (same as in .../mailFolders/{id}/messages).",
+                },
+                "top": {
+                    "type": "integer",
+                    "description": "Page size for each GET (1..50, default 50).",
+                    "default": 50,
+                },
+            },
+            required=["mail_folder_id"],
+        ),
+        runner=ms_ops.microsoft_mail_mark_folder_read,
     ),
     "microsoft_calendar_list_events": ToolSpec(
         name="microsoft_calendar_list_events",

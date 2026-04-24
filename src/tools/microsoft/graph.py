@@ -18,6 +18,8 @@ _MISSING_TOKEN_DETAIL = (
 
 _MAX_PATH_LEN = 2048
 _MAX_JSON_BODY_BYTES = 512 * 1024
+# RFC 3986 unreserved in Graph ids — do not use safe="" (would encode '-' and '_' and break some tenants).
+_GRAPH_PATH_SEGMENT_SAFE = "-_.~"
 
 
 def _safe_me_path(path: str) -> str:
@@ -52,13 +54,13 @@ def _encode_graph_me_path(path: str) -> str:
     for i, seg in enumerate(parts):
         prev = parts[i - 1] if i > 0 else ""
         if prev == "messages" and seg and not seg.startswith("$"):
-            out.append(quote(unquote(seg), safe=""))
+            out.append(quote(unquote(seg), safe=_GRAPH_PATH_SEGMENT_SAFE))
         elif prev == "mailFolders" and seg and not seg.startswith("$"):
             well_known = ("inbox", "drafts", "sentitems", "deleteditems", "junkemail", "archive", "outbox")
             if seg.lower() in well_known:
                 out.append(seg)
             else:
-                out.append(quote(unquote(seg), safe=""))
+                out.append(quote(unquote(seg), safe=_GRAPH_PATH_SEGMENT_SAFE))
         else:
             out.append(seg)
     return "/".join(out) + suffix
@@ -93,6 +95,28 @@ def graph_api(
             resp = client.request(m, url, headers=headers, params=params)
     if resp.status_code == 204:
         return {"ok": True, "status_code": 204}
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text[:8000])
+    ct = (resp.headers.get("content-type") or "").lower()
+    if "application/json" in ct and resp.content:
+        return resp.json()
+    return {"status_code": resp.status_code, "text": (resp.text or "")[:8000]}
+
+
+def graph_get_absolute(url: str) -> Any:
+    """GET a full Graph v1.0 URL (e.g. @odata.nextLink). Same auth and response handling as graph_api GET."""
+    token = get_graph_bearer()
+    if not token:
+        raise HTTPException(status_code=401, detail=_MISSING_TOKEN_DETAIL)
+    u = url.strip()
+    if not u.startswith("https://graph.microsoft.com/v1.0"):
+        raise HTTPException(
+            status_code=400,
+            detail="URL must start with https://graph.microsoft.com/v1.0 (Graph @odata.nextLink).",
+        )
+    headers: dict[str, str] = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    with httpx.Client(timeout=120.0) as client:
+        resp = client.get(u, headers=headers)
     if resp.status_code >= 400:
         raise HTTPException(status_code=resp.status_code, detail=resp.text[:8000])
     ct = (resp.headers.get("content-type") or "").lower()

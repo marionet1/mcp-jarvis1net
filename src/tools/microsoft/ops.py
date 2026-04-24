@@ -6,7 +6,7 @@ from fastapi import HTTPException
 
 from src.deps import ApiKeyAuth
 
-from .graph import graph_api, graph_get
+from .graph import graph_api, graph_get, graph_get_absolute
 from .graph_context import get_graph_bearer
 
 
@@ -63,15 +63,39 @@ def microsoft_mail_mark_read(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str
         mid = item.strip()
         if not mid:
             continue
-        if folder_id:
-            path = f"/me/mailFolders/{folder_id}/messages/{mid}"
-        else:
-            path = f"/me/messages/{mid}"
+        path_used = "/me/messages/{id}"
         try:
-            out = graph_api("PATCH", path, body={"isRead": True})
+            out = graph_api("PATCH", f"/me/messages/{mid}", body={"isRead": True})
             ok_count += 1
-            results.append({"id": mid, "ok": True, "result": out})
+            results.append({"id": mid, "ok": True, "path_used": path_used, "result": out})
         except HTTPException as ex:
+            if folder_id and ex.status_code == 404:
+                try:
+                    out2 = graph_api("PATCH", f"/me/mailFolders/{folder_id}/messages/{mid}", body={"isRead": True})
+                    ok_count += 1
+                    results.append(
+                        {
+                            "id": mid,
+                            "ok": True,
+                            "path_used": "/me/mailFolders/{folderId}/messages/{id}",
+                            "result": out2,
+                            "note": "fallback after 404 on /me/messages/{id}",
+                        }
+                    )
+                    continue
+                except HTTPException as ex2:
+                    fail_count += 1
+                    det2 = ex2.detail if isinstance(ex2.detail, str) else str(ex2.detail)
+                    results.append(
+                        {
+                            "id": mid,
+                            "ok": False,
+                            "status_code": ex2.status_code,
+                            "detail": det2[:2000],
+                            "note": "/me/messages 404 then folder-scoped PATCH failed",
+                        }
+                    )
+                    continue
             fail_count += 1
             det = ex.detail
             if not isinstance(det, str):
@@ -79,8 +103,85 @@ def microsoft_mail_mark_read(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str
             results.append({"id": mid, "ok": False, "status_code": ex.status_code, "detail": det[:2000]})
     return {
         "summary": {"patched_ok": ok_count, "patched_failed": fail_count, "ids_requested": len(raw)},
-        "mail_folder_id_used": folder_id,
+        "mail_folder_id_for_fallback": folder_id,
         "results": results,
+    }
+
+
+def microsoft_mail_mark_folder_read(args: dict[str, Any], auth: ApiKeyAuth) -> dict[str, Any]:
+    """
+    Lists all unread messages in one mail folder (follows @odata.nextLink), then PATCHes each via /me/messages/{id}.
+    Prefer this over manual GET + $skip when the user wants every unread in that folder marked read.
+    """
+    _ = auth
+    folder_raw = args.get("mail_folder_id") or args.get("folder_id")
+    if not isinstance(folder_raw, str) or not folder_raw.strip():
+        raise HTTPException(status_code=400, detail="mail_folder_id is required")
+    fid = folder_raw.strip()
+    top = int(args.get("top", 50))
+    top = min(max(top, 1), 50)
+    max_pages = 40
+    max_patch = 500
+
+    all_ids: list[str] = []
+    pages = 0
+    next_url: str | None = None
+    path = f"/me/mailFolders/{fid}/messages"
+    query: dict[str, Any] = {"$filter": "isRead eq false", "$select": "id", "$top": str(top)}
+
+    while pages < max_pages:
+        if next_url:
+            data = graph_get_absolute(next_url)
+        else:
+            data = graph_api("GET", path, query=query)
+        pages += 1
+        if not isinstance(data, dict):
+            return {
+                "ok": False,
+                "error": "Unexpected non-JSON object from Graph while listing unread messages",
+                "summary": {"mail_folder_id": fid, "pages_fetched": pages},
+            }
+        vals = data.get("value")
+        if isinstance(vals, list):
+            for item in vals:
+                if isinstance(item, dict):
+                    iid = item.get("id")
+                    if isinstance(iid, str) and iid.strip():
+                        all_ids.append(iid.strip())
+        nl = data.get("@odata.nextLink")
+        next_url = nl.strip() if isinstance(nl, str) and nl.strip() else None
+        if not next_url:
+            break
+
+    if len(all_ids) > max_patch:
+        return {
+            "ok": False,
+            "error": f"Too many unread messages ({len(all_ids)}); max supported in one call is {max_patch}. Narrow folder or mark in batches.",
+            "summary": {"mail_folder_id": fid, "unread_collected": len(all_ids)},
+        }
+
+    results: list[dict[str, Any]] = []
+    ok_count = 0
+    fail_count = 0
+    for mid in all_ids:
+        try:
+            out = graph_api("PATCH", f"/me/messages/{mid}", body={"isRead": True})
+            ok_count += 1
+            results.append({"id": mid, "ok": True, "result": out})
+        except HTTPException as ex:
+            fail_count += 1
+            det = ex.detail if isinstance(ex.detail, str) else str(ex.detail)
+            results.append({"id": mid, "ok": False, "status_code": ex.status_code, "detail": det[:1500]})
+
+    return {
+        "summary": {
+            "mail_folder_id": fid,
+            "pages_fetched": pages,
+            "unread_ids_collected": len(all_ids),
+            "patched_ok": ok_count,
+            "patched_failed": fail_count,
+        },
+        "failures_sample": [r for r in results if not r.get("ok")][:15],
     }
 
 
