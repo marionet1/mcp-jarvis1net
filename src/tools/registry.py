@@ -294,6 +294,35 @@ TOOL_SPECS: dict[str, ToolSpec] = {
         ),
         runner=ms_ops.microsoft_mail_list_messages,
     ),
+    "microsoft_mail_mark_read": ToolSpec(
+        name="microsoft_mail_mark_read",
+        scope="microsoft",
+        schema=_schema(
+            name="microsoft_mail_mark_read",
+            description=(
+                "Marks many mail messages as read in one tool call: PATCHes each Graph message id with "
+                "`{\"isRead\": true}`. Use after a GET that returns `value` with `id` fields — pass **every** id from "
+                "`value` (up to 40 per call). Optional `mail_folder_id`: if messages live under a specific folder, "
+                "set it to that folder's id so PATCH uses `/me/mailFolders/{id}/messages/{messageId}` (sometimes "
+                "more reliable than `/me/messages/{id}` for linked accounts). Requires Mail.ReadWrite."
+            ),
+            properties={
+                "message_ids": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Graph message id strings from a prior messages GET (value[].id).",
+                    "minItems": 1,
+                    "maxItems": 40,
+                },
+                "mail_folder_id": {
+                    "type": "string",
+                    "description": "Optional mailFolder id when PATCH should be folder-scoped (same folder as the GET).",
+                },
+            },
+            required=["message_ids"],
+        ),
+        runner=ms_ops.microsoft_mail_mark_read,
+    ),
     "microsoft_calendar_list_events": ToolSpec(
         name="microsoft_calendar_list_events",
         scope="microsoft",
@@ -350,7 +379,10 @@ TOOL_SPECS: dict[str, ToolSpec] = {
                 },
                 "body": {
                     "type": "object",
-                    "description": "JSON object for POST/PATCH/PUT (e.g. sendMail message payload).",
+                    "description": (
+                        "JSON object for POST/PATCH/PUT (e.g. sendMail message payload). "
+                        "To mark a message read: PATCH /me/messages/{id} with {\"isRead\": true} (boolean, exact key isRead)."
+                    ),
                     "additionalProperties": True,
                 },
             },

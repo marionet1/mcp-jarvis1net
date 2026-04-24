@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from typing import Any
+from urllib.parse import quote, unquote
 
 import httpx
 from fastapi import HTTPException
@@ -35,6 +36,34 @@ def _safe_me_path(path: str) -> str:
     return p
 
 
+def _encode_graph_me_path(path: str) -> str:
+    """
+    Graph mail message/folder ids often contain '=', '+', '/' — encode those path segments
+    so httpx/servers match the same resource Microsoft documents (see message-update).
+    """
+    if "?" in path:
+        p, qs = path.split("?", 1)
+        suffix = "?" + qs
+    else:
+        p = path
+        suffix = ""
+    parts = p.split("/")
+    out: list[str] = []
+    for i, seg in enumerate(parts):
+        prev = parts[i - 1] if i > 0 else ""
+        if prev == "messages" and seg and not seg.startswith("$"):
+            out.append(quote(unquote(seg), safe=""))
+        elif prev == "mailFolders" and seg and not seg.startswith("$"):
+            well_known = ("inbox", "drafts", "sentitems", "deleteditems", "junkemail", "archive", "outbox")
+            if seg.lower() in well_known:
+                out.append(seg)
+            else:
+                out.append(quote(unquote(seg), safe=""))
+        else:
+            out.append(seg)
+    return "/".join(out) + suffix
+
+
 def graph_api(
     method: str,
     path: str,
@@ -46,7 +75,7 @@ def graph_api(
     token = get_graph_bearer()
     if not token:
         raise HTTPException(status_code=401, detail=_MISSING_TOKEN_DETAIL)
-    safe_path = _safe_me_path(path)
+    safe_path = _encode_graph_me_path(_safe_me_path(path))
     m = method.strip().upper()
     if m not in ("GET", "POST", "PATCH", "PUT", "DELETE"):
         raise HTTPException(status_code=400, detail="method must be GET, POST, PATCH, PUT, or DELETE")
