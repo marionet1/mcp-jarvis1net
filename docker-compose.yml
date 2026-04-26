@@ -1,0 +1,15 @@
+# Łatwy deploy: buduje obraz i uruchamia serwer MCP na stdio.
+# Użycie (test ręczny): docker compose run --rm mcp
+# Uwaga: klient MCP (Cursor) zwykle odpala proces python lokalnie; ten compose służy głównie do
+# pracy w kontenerze z zamontowanym katalogiem (np. /workspace).
+
+services:
+  mcp:
+    build: .
+    stdin_open: true
+    tty: true
+    environment:
+      MCP_ALLOWED_ROOTS: /workspace
+      # MCP_GRAPH_ACCESS_TOKEN: ...
+    volumes:
+      - ./data:/workspace:rw
