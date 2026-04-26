@@ -1,0 +1,10 @@
+{
+  "rag_root": "/app/data/rag",
+  "backend": "qdrant",
+  "qdrant_url": "http://qdrant:6333",
+  "qdrant_collection": "jarvis1net_tool_docs",
+  "qdrant_api_key_env": "QDRANT_API_KEY",
+  "openrouter_base_url": "https://openrouter.ai/api/v1",
+  "embed_model": "text-embedding-3-small",
+  "guidance_auto": true
+}

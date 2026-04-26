@@ -24,5 +24,5 @@ mcp-jarvis1net-py = "server:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-py-modules = ["server", "filesystem", "graph", "graph_ops", "paths", "rag_tools", "rag_vector_store", "shell_tools", "tool_manifest"]
+py-modules = ["server", "filesystem", "graph", "graph_ops", "paths", "rag_config", "rag_tools", "rag_vector_store", "shell_tools", "tool_manifest"]
 

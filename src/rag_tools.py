@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from rag_config import get_rag_config
 from rag_vector_store import RagChunk, RagVectorStore
 
 DOC_SCHEMA_VERSION = "1.0"
@@ -19,7 +19,7 @@ def _utc_now_iso() -> str:
 
 
 def _rag_root() -> Path:
-    configured = os.getenv("MCP_RAG_ROOT", "").strip()
+    configured = get_rag_config().rag_root.strip()
     if configured:
         return Path(configured)
     docker_default = Path("/app/data/rag")

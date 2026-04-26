@@ -48,21 +48,31 @@ python3 src/server.py
 }
 ```
 
-## Environment variables
+## Environment variables (`.env`)
 
 - `MCP_ALLOWED_ROOTS` - comma-separated filesystem roots allowed for `fs_*` tools
 - `MCP_GRAPH_ACCESS_TOKEN` - default Microsoft Graph token (optional)
 - `MCP_MAX_READ_BYTES` - max file read size
 - `MCP_MAX_WRITE_BYTES` - max file write size
 - `MCP_SHELL_TIMEOUT_SEC` - timeout for shell diagnostic tools
-- `MCP_RAG_ROOT` - RAG storage directory (default: `/app/data/rag`)
-- `RAG_BACKEND` - `local` or `qdrant` (default: `local`)
-- `QDRANT_URL` - Qdrant endpoint (default: `http://qdrant:6333`)
-- `QDRANT_COLLECTION` - vector collection name (default: `jarvis1net_tool_docs`)
-- `RAG_GUIDANCE_AUTO` - inject guidance into tool responses (`1`/`0`)
-- `OPENAI_API_KEY` - embedding API key (required for `RAG_BACKEND=qdrant`)
-- `OPENAI_BASE_URL` - optional custom OpenAI-compatible base URL
-- `RAG_EMBED_MODEL` - embedding model (default: `text-embedding-3-small`)
+- `OPENROUTER_API_KEY` - embedding API key (required when backend is `qdrant`)
+- `RAG_EMBED_API_KEY` - optional dedicated embedding key (overrides `OPENROUTER_API_KEY`)
+- `QDRANT_API_KEY` - optional Qdrant auth secret (if enabled)
+
+## RAG configuration file
+
+RAG runtime settings now live in:
+- `config/rag_config.json`
+
+Example fields:
+- `rag_root`
+- `backend`
+- `qdrant_url`
+- `qdrant_collection`
+- `qdrant_api_key_env`
+- `openrouter_base_url`
+- `embed_model`
+- `guidance_auto`
 
 ## Main tool groups
 
@@ -94,25 +104,26 @@ Recommended first setup:
 ## Production RAG setup (Qdrant + API embeddings)
 
 1. Set environment variables in the root stack `.env`:
-   - `RAG_BACKEND=qdrant`
-   - `QDRANT_URL=http://qdrant:6333`
-   - `QDRANT_COLLECTION=jarvis1net_tool_docs`
-   - `OPENAI_API_KEY=...`
+   - one key variable: `OPENROUTER_API_KEY` or `RAG_EMBED_API_KEY`
+   - optional: `QDRANT_API_KEY`
 
-2. Start stack services:
+2. Configure non-secret RAG settings in:
+   - `config/rag_config.json`
+
+3. Start stack services:
 
 ```bash
 docker compose up -d --build
 ```
 
-3. Ingest source sets:
+4. Ingest source sets:
 
 ```bash
 cd mcp-jarvis1net
 python3 scripts/ingest_docs.py --source scripts/sources_microsoft.yaml --source scripts/sources_internal.yaml
 ```
 
-4. Run retrieval evaluation:
+5. Run retrieval evaluation:
 
 ```bash
 python3 tests/rag_eval/evaluate_rag.py
@@ -144,6 +155,6 @@ python3 tests/rag_eval/evaluate_rag.py
   - start stack and run eval.
 
 ### Monitoring and telemetry
-- Search telemetry is written to `${MCP_RAG_ROOT}/telemetry.jsonl`.
+- Search telemetry is written to `<rag_root>/telemetry.jsonl` from `config/rag_config.json`.
 - Track `fallback_used`, `elapsed_ms`, `result_count` trends over time.
 

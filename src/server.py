@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
@@ -24,6 +22,7 @@ from graph_ops import (
     strip_token_copy,
 )
 from paths import PathError
+from rag_config import get_rag_config
 from rag_tools import (
     rag_delete_document,
     rag_get_tool_execution_guidance,
@@ -47,7 +46,7 @@ def _run_microsoft(handler, args: dict[str, object]) -> dict[str, object]:
 
 
 def _with_guidance(tool_name: str, intent: str, result: dict[str, object], provider: str = "microsoft") -> dict[str, object]:
-    enabled = (os.getenv("RAG_GUIDANCE_AUTO", "1").strip().lower() not in {"0", "false", "no"})
+    enabled = get_rag_config().guidance_auto
     if not enabled:
         return result
     guidance = rag_get_tool_execution_guidance(

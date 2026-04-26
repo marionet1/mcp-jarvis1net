@@ -4,6 +4,8 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
+from rag_config import get_rag_config
+
 
 @dataclass
 class RagChunk:
@@ -16,8 +18,9 @@ class RagChunk:
 
 class RagVectorStore:
     def __init__(self) -> None:
-        self.backend = os.getenv("RAG_BACKEND", "local").strip().lower()
-        self.collection = os.getenv("QDRANT_COLLECTION", "jarvis1net_tool_docs").strip() or "jarvis1net_tool_docs"
+        self.cfg = get_rag_config()
+        self.backend = self.cfg.backend
+        self.collection = self.cfg.qdrant_collection
         self.ready = False
         self._qdrant_client = None
         self._vector_store = None
@@ -37,14 +40,20 @@ class RagVectorStore:
             self._init_error = f"Missing RAG dependencies for qdrant backend: {exc}"
             return
 
-        qdrant_url = os.getenv("QDRANT_URL", "http://qdrant:6333").strip()
-        qdrant_api_key = os.getenv("QDRANT_API_KEY", "").strip() or None
-        embedding_model = os.getenv("RAG_EMBED_MODEL", "text-embedding-3-small").strip()
-        openai_api_key = os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("RAG_EMBED_API_KEY", "").strip()
-        openai_base_url = os.getenv("OPENAI_BASE_URL", "").strip() or None
+        qdrant_url = self.cfg.qdrant_url
+        qdrant_api_key = os.getenv(self.cfg.qdrant_api_key_env, "").strip() or None
+        embedding_model = self.cfg.embed_model
+        openrouter_api_key = (
+            os.getenv("RAG_EMBED_API_KEY", "").strip()
+            or os.getenv("OPENROUTER_API_KEY", "").strip()
+        )
+        openrouter_base_url = self.cfg.openrouter_base_url
 
-        if not openai_api_key:
-            self._init_error = "OPENAI_API_KEY (or RAG_EMBED_API_KEY) is required when RAG_BACKEND=qdrant."
+        if not openrouter_api_key:
+            self._init_error = (
+                "OPENROUTER_API_KEY (or RAG_EMBED_API_KEY) "
+                "is required when RAG_BACKEND=qdrant."
+            )
             return
 
         try:
@@ -55,8 +64,8 @@ class RagVectorStore:
             )
             self._embed_model = OpenAIEmbedding(
                 model=embedding_model,
-                api_key=openai_api_key,
-                api_base=openai_base_url,
+                api_key=openrouter_api_key,
+                api_base=openrouter_base_url,
             )
             Settings.embed_model = self._embed_model
             storage_context = StorageContext.from_defaults(vector_store=self._vector_store)
