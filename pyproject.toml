@@ -10,7 +10,12 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "mcp>=1.0.0",
+  "llama-index-core>=0.11.0",
+  "llama-index-embeddings-openai>=0.2.0",
+  "llama-index-vector-stores-qdrant>=0.3.0",
+  "qdrant-client>=1.11.0",
   "python-dotenv>=1.0.0",
+  "PyYAML>=6.0.2",
   "requests>=2.31.0",
 ]
 
@@ -19,5 +24,5 @@ mcp-jarvis1net-py = "server:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-py-modules = ["server", "filesystem", "graph", "graph_ops", "paths", "shell_tools", "tool_manifest"]
+py-modules = ["server", "filesystem", "graph", "graph_ops", "paths", "rag_tools", "rag_vector_store", "shell_tools", "tool_manifest"]
 

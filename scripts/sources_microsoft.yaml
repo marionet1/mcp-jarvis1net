@@ -1,0 +1,91 @@
+documents:
+  - doc_id: ms-graph-overview
+    title: Microsoft Graph overview
+    tool_family: microsoft
+    provider: microsoft
+    doc_type: overview
+    source_url: https://learn.microsoft.com/graph/overview
+    version: v1.0
+    tags: [graph, overview]
+
+  - doc_id: ms-graph-auth-overview
+    title: Microsoft Graph authentication overview
+    tool_family: microsoft
+    provider: microsoft
+    doc_type: howto
+    source_url: https://learn.microsoft.com/graph/auth/
+    version: v1.0
+    tags: [auth, oauth, msal]
+
+  - doc_id: ms-device-code-flow
+    title: OAuth 2.0 device authorization grant flow
+    tool_family: microsoft
+    provider: microsoft
+    doc_type: howto
+    source_url: https://learn.microsoft.com/entra/identity-platform/v2-oauth2-device-code
+    version: v2
+    tags: [auth, device-code]
+
+  - doc_id: ms-permissions-reference
+    title: Microsoft Graph permissions reference
+    tool_family: microsoft
+    provider: microsoft
+    doc_type: reference
+    source_url: https://learn.microsoft.com/graph/permissions-reference
+    version: v1.0
+    tags: [permissions, scopes]
+
+  - doc_id: ms-graph-errors
+    title: Microsoft Graph error responses and resource types
+    tool_family: microsoft
+    provider: microsoft
+    doc_type: errors
+    source_url: https://learn.microsoft.com/graph/errors
+    version: v1.0
+    tags: [errors, troubleshooting]
+
+  - doc_id: ms-graph-throttling
+    title: Microsoft Graph throttling guidance
+    tool_family: microsoft
+    provider: microsoft
+    doc_type: limits
+    source_url: https://learn.microsoft.com/graph/throttling
+    version: v1.0
+    tags: [throttling, retry]
+
+  - doc_id: ms-mail-overview
+    title: Mail API overview
+    tool_family: microsoft
+    provider: microsoft
+    doc_type: overview
+    source_url: https://learn.microsoft.com/graph/api/resources/mail-api-overview
+    version: v1.0
+    tags: [mail, email]
+
+  - doc_id: ms-calendar-overview
+    title: Calendar API overview
+    tool_family: microsoft
+    provider: microsoft
+    doc_type: overview
+    source_url: https://learn.microsoft.com/graph/api/resources/calendar-overview
+    version: v1.0
+    tags: [calendar, events]
+
+  - doc_id: ms-onedrive-overview
+    title: OneDrive API overview
+    tool_family: microsoft
+    provider: microsoft
+    doc_type: overview
+    source_url: https://learn.microsoft.com/graph/api/resources/onedrive
+    version: v1.0
+    tags: [onedrive, files]
+
+  - doc_id: ms-user-get
+    title: Get user profile with /me
+    tool_family: microsoft
+    tool_name: microsoft_graph_me
+    provider: microsoft
+    doc_type: howto
+    source_url: https://learn.microsoft.com/graph/api/user-get
+    version: v1.0
+    tags: [profile, me]

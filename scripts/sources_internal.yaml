@@ -1,0 +1,55 @@
+documents:
+  - doc_id: fs-safety-basics
+    title: Filesystem tools safety baseline
+    tool_family: filesystem
+    provider: internal
+    doc_type: security
+    tags: [filesystem, safety]
+    content: >
+      Use filesystem tools only within allowed roots. Always verify path targets before write,
+      delete, or rename operations. Prefer stat/list operations first when path certainty is low.
+      Avoid destructive actions when a read-only alternative is enough.
+
+  - doc_id: fs-read-write-playbook
+    title: Read and write file execution playbook
+    tool_family: filesystem
+    provider: internal
+    doc_type: howto
+    tags: [filesystem, read, write]
+    content: >
+      For file updates use this order: fs_stat_path -> fs_read_file -> fs_write_file.
+      Keep encoding UTF-8 unless there is a documented reason otherwise.
+      For large files, read bounded bytes and avoid full overwrite when patching is enough.
+
+  - doc_id: shell-diagnostic-playbook
+    title: Shell diagnostic execution playbook
+    tool_family: shell
+    provider: internal
+    doc_type: howto
+    tags: [shell, diagnostics]
+    content: >
+      Use shell_run_diagnostic for approved actions only: disk_usage, memory_usage, cpu_load, uptime, ping.
+      Treat host and count as untrusted input and keep defaults conservative.
+      Report actionable findings and avoid noisy raw outputs unless requested.
+
+  - doc_id: shell-troubleshooting-basics
+    title: Shell troubleshooting response style
+    tool_family: shell
+    provider: internal
+    doc_type: reference
+    tags: [shell, troubleshooting]
+    content: >
+      When diagnostics indicate resource pressure, summarize root cause candidates,
+      propose one immediate mitigation and one durable fix, and include a short verification step.
+
+  - doc_id: microsoft-tool-runbook
+    title: Microsoft tool execution runbook
+    tool_family: microsoft
+    provider: internal
+    doc_type: runbook
+    tags: [microsoft, auth, retry]
+    content: >
+      Before Microsoft tool execution verify token availability.
+      On 401 or invalid_grant errors, trigger re-auth flow.
+      On 429 responses, honor retry-after and apply exponential backoff.
+      For broad operations prefer scoped queries before heavy list calls.

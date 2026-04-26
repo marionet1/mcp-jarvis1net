@@ -1,0 +1,30 @@
+[
+  {
+    "id": "ms-auth-device-code",
+    "query": "How should I authenticate Microsoft Graph with device code flow?",
+    "tool_family": "microsoft",
+    "expected_any": ["device", "oauth", "token", "auth"],
+    "min_hits": 1
+  },
+  {
+    "id": "ms-throttling",
+    "query": "How to handle Microsoft Graph throttling and retries?",
+    "tool_family": "microsoft",
+    "expected_any": ["throttl", "retry", "429"],
+    "min_hits": 1
+  },
+  {
+    "id": "fs-safe-update",
+    "query": "What is the safe order for file write operations?",
+    "tool_family": "filesystem",
+    "expected_any": ["stat", "read", "write"],
+    "min_hits": 1
+  },
+  {
+    "id": "shell-diag-action",
+    "query": "What actions are allowed for shell diagnostics?",
+    "tool_family": "shell",
+    "expected_any": ["disk_usage", "memory_usage", "cpu_load", "uptime", "ping"],
+    "min_hits": 1
+  }
+]
