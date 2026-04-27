@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-import os
 import re
 import subprocess
 import time
+
+from tools.config import load_tools_config
 
 _SAFE_HOST = re.compile(r"^[A-Za-z0-9.\-:]{1,255}$")
 
 
 def shell_timeout_sec() -> int:
-    raw = (os.getenv("MCP_SHELL_TIMEOUT_SEC") or "8").strip()
-    try:
-        num = int(raw)
-    except ValueError:
-        num = 8
-    return max(1, min(num, 30))
+    return load_tools_config().shell_timeout_sec
 
 
 def command_for(action: str, host: str | None, count: int) -> list[str]:
@@ -103,4 +99,3 @@ def shell_run_diagnostic(action: str, host: str | None = None, count: int | None
             "timeout_sec": timeout,
             "elapsed_ms": int((time.time() - start) * 1000),
         }
-

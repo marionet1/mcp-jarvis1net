@@ -3,9 +3,21 @@ from __future__ import annotations
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
-from filesystem import fs_delete_path, fs_list_directory, fs_mkdir, fs_read_file, fs_rename_path, fs_stat_path, fs_write_file
-from graph import GraphHttpError, run_with_graph_token
-from graph_ops import (
+from rag.config import get_rag_config
+from rag.service import (
+    rag_delete_document,
+    rag_get_tool_execution_guidance,
+    rag_list_documents,
+    rag_list_tool_catalog,
+    rag_refresh_tool_catalog,
+    rag_search_tool_guidance,
+    rag_upsert_document,
+)
+from tools.filesystem import fs_delete_path, fs_list_directory, fs_mkdir, fs_read_file, fs_rename_path, fs_stat_path, fs_write_file
+from tools.filesystem.path_guard import PathError
+from tools.manifest import mcp_tool_list
+from tools.microsoft import GraphHttpError, run_with_graph_token
+from tools.microsoft import (
     microsoft_calendar_events_on_date,
     microsoft_calendar_list_events,
     microsoft_graph_api,
@@ -21,19 +33,7 @@ from graph_ops import (
     resolve_graph_token,
     strip_token_copy,
 )
-from paths import PathError
-from rag_config import get_rag_config
-from rag_tools import (
-    rag_delete_document,
-    rag_get_tool_execution_guidance,
-    rag_list_documents,
-    rag_list_tool_catalog,
-    rag_refresh_tool_catalog,
-    rag_search_tool_guidance,
-    rag_upsert_document,
-)
-from shell_tools import shell_run_diagnostic
-from tool_manifest import mcp_tool_list
+from tools.shell import shell_run_diagnostic
 
 load_dotenv()
 mcp = FastMCP("mcp-jarvis1net")

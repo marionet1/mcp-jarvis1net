@@ -41,7 +41,7 @@ python3 src/server.py
       "command": "python3",
       "args": ["/absolute/path/to/mcp-jarvis1net/src/server.py"],
       "env": {
-        "MCP_ALLOWED_ROOTS": "/home/you/project"
+        "MCP_GRAPH_ACCESS_TOKEN": "<optional secret token>"
       }
     }
   }
@@ -50,29 +50,17 @@ python3 src/server.py
 
 ## Environment variables (`.env`)
 
-- `MCP_ALLOWED_ROOTS` - comma-separated filesystem roots allowed for `fs_*` tools
 - `MCP_GRAPH_ACCESS_TOKEN` - default Microsoft Graph token (optional)
-- `MCP_MAX_READ_BYTES` - max file read size
-- `MCP_MAX_WRITE_BYTES` - max file write size
-- `MCP_SHELL_TIMEOUT_SEC` - timeout for shell diagnostic tools
 - `OPENROUTER_API_KEY` - embedding API key (required when backend is `qdrant`)
 - `RAG_EMBED_API_KEY` - optional dedicated embedding key (overrides `OPENROUTER_API_KEY`)
 - `QDRANT_API_KEY` - optional Qdrant auth secret (if enabled)
 
-## RAG configuration file
+## Non-secret runtime config files
 
-RAG runtime settings now live in:
-- `config/rag_config.json`
-
-Example fields:
-- `rag_root`
-- `backend`
-- `qdrant_url`
-- `qdrant_collection`
-- `qdrant_api_key_env`
-- `openrouter_base_url`
-- `embed_model`
-- `guidance_auto`
+- Tools config: `src/tools/tools_config.json`
+  - `allowed_roots`, `max_read_bytes`, `max_write_bytes`, `shell_timeout_sec`
+- RAG config: `src/rag/rag_config.json`
+  - `rag_root`, `backend`, `qdrant_url`, `qdrant_collection`, `openrouter_base_url`, `embed_model`, `guidance_auto`
 
 ## Main tool groups
 
@@ -108,7 +96,7 @@ Recommended first setup:
    - optional: `QDRANT_API_KEY`
 
 2. Configure non-secret RAG settings in:
-   - `config/rag_config.json`
+   - `src/rag/rag_config.json`
 
 3. Start stack services:
 
@@ -120,27 +108,27 @@ docker compose up -d --build
 
 ```bash
 cd mcp-jarvis1net
-python3 scripts/ingest_docs.py --source scripts/sources_microsoft.yaml --source scripts/sources_internal.yaml
+python3 src/rag/ingest_docs.py --source src/rag/sources/microsoft.yaml --source src/rag/sources/internal.yaml
 ```
 
 5. Run retrieval evaluation:
 
 ```bash
-python3 tests/rag_eval/evaluate_rag.py
+python3 src/rag/tests/evaluate_rag.py
 ```
 
 ## Ingest pipeline files
 
-- `scripts/ingest_docs.py` - fetch/normalize/upsert pipeline
-- `scripts/sources_microsoft.yaml` - official Microsoft Graph source list
-- `scripts/sources_internal.yaml` - filesystem/shell internal playbooks
+- `src/rag/ingest_docs.py` - fetch/normalize/upsert pipeline
+- `src/rag/sources/microsoft.yaml` - official Microsoft Graph source list
+- `src/rag/sources/internal.yaml` - filesystem/shell internal playbooks
 
 ## Operations runbook
 
 ### Reindex workflow
 1. Update YAML source files.
 2. Run `ingest_docs.py` again.
-3. Run `tests/rag_eval/evaluate_rag.py`.
+3. Run `src/rag/tests/evaluate_rag.py`.
 
 ### Weekly and monthly cadence
 - Weekly: incremental ingest from source YAML.
@@ -155,6 +143,6 @@ python3 tests/rag_eval/evaluate_rag.py
   - start stack and run eval.
 
 ### Monitoring and telemetry
-- Search telemetry is written to `<rag_root>/telemetry.jsonl` from `config/rag_config.json`.
+- Search telemetry is written to `<rag_root>/telemetry.jsonl` from `src/rag/rag_config.json`.
 - Track `fallback_used`, `elapsed_ms`, `result_count` trends over time.
 

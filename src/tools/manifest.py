@@ -49,4 +49,3 @@ mcp_tool_list: list[dict[str, object]] = [
     {"name": "microsoft_onedrive_list_root", "description": "Lists OneDrive root children.", "inputSchema": with_graph({"type": "object", "properties": {}, "required": []})},
     {"name": "microsoft_graph_api", "description": "Low-level Microsoft Graph v1.0 for /me/... paths.", "inputSchema": with_graph({"type": "object", "properties": {"method": {"type": "string", "enum": ["GET", "POST", "PATCH", "PUT", "DELETE"]}, "path": {"type": "string"}, "query": {"type": "object"}, "body": {"type": "object"}}, "required": ["method", "path"]})},
 ]
-

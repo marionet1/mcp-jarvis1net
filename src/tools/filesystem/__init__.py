@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from paths import PathError, max_read_bytes, max_write_bytes, resolve_directory, resolve_path
+from tools.filesystem.path_guard import PathError, max_read_bytes, max_write_bytes, resolve_directory, resolve_path
 
 
 def fs_list_directory(path: str) -> dict[str, object]:
@@ -107,4 +107,3 @@ def fs_rename_path(from_path: str, to_path: str) -> dict[str, object]:
         raise PathError("Destination parent directory does not exist.", "not_found")
     src.rename(dst)
     return {"from": str(src), "to": str(dst), "ok": True}
-

@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
-from rag_config import get_rag_config
+from rag.config import get_rag_config
 
 
 @dataclass
@@ -41,7 +41,7 @@ class RagVectorStore:
             return
 
         qdrant_url = self.cfg.qdrant_url
-        qdrant_api_key = os.getenv(self.cfg.qdrant_api_key_env, "").strip() or None
+        qdrant_api_key = os.getenv("QDRANT_API_KEY", "").strip() or None
         embedding_model = self.cfg.embed_model
         openrouter_api_key = (
             os.getenv("RAG_EMBED_API_KEY", "").strip()

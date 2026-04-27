@@ -145,4 +145,3 @@ def graph_get(path: str, params: dict[str, object] | None = None, extra_headers:
     if not isinstance(data, dict):
         raise ValueError("Graph GET returned non-object JSON")
     return data
-

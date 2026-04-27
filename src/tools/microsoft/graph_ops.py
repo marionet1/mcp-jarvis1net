@@ -5,7 +5,7 @@ import re
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from graph import GraphHttpError, graph_api, graph_get, graph_get_absolute, get_graph_bearer
+from tools.microsoft.graph_api import GraphHttpError, graph_api, graph_get, graph_get_absolute, get_graph_bearer
 
 CAL_START_NOTE = "Each item may include `_jarvis1net_calendar_date` = calendar date of `start` only."
 
@@ -239,4 +239,3 @@ def _enrich(data: dict[str, object], default_tz: str) -> dict[str, object]:
         mapped.append(row)
     out["value"] = mapped
     return out
-

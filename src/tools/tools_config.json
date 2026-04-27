@@ -1,0 +1,8 @@
+{
+  "allowed_roots": [
+    "/home/jump"
+  ],
+  "max_read_bytes": 1048576,
+  "max_write_bytes": 2097152,
+  "shell_timeout_sec": 8
+}

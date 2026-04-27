@@ -11,13 +11,13 @@ from typing import Any
 import requests
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from rag_tools import rag_refresh_tool_catalog, rag_upsert_document  # noqa: E402
-from tool_manifest import mcp_tool_list  # noqa: E402
+from rag.service import rag_refresh_tool_catalog, rag_upsert_document  # noqa: E402
+from tools.manifest import mcp_tool_list  # noqa: E402
 
 
 def _fetch_url(url: str, timeout_sec: int = 25) -> str:

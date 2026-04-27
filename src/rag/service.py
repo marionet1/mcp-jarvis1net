@@ -7,8 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from rag_config import get_rag_config
-from rag_vector_store import RagChunk, RagVectorStore
+from rag.config import get_rag_config
+from rag.vector_store import RagChunk, RagVectorStore
 
 DOC_SCHEMA_VERSION = "1.0"
 ALLOWED_DOC_TYPES = {"overview", "howto", "reference", "errors", "limits", "examples", "runbook", "security"}
@@ -243,7 +243,6 @@ def rag_delete_document(doc_id: str) -> dict[str, object]:
     before = len(docs)
     docs = [d for d in docs if str(d.get("doc_id", "")) != doc_id]
     _write_json(_docs_path(), docs)
-    # Vector deletion can be added later through id-based delete in Qdrant.
     return {"ok": True, "deleted": before - len(docs), "count": len(docs)}
 
 
