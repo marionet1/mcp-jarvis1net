@@ -5,7 +5,7 @@ import re
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from tools.microsoft.graph_api import GraphHttpError, graph_api, graph_get, graph_get_absolute, get_graph_bearer
+from tools.microsoft.graph_api import GraphHttpError, graph_api, graph_get, graph_get_absolute, graph_get_text, get_graph_bearer
 
 CAL_START_NOTE = "Each item may include `_jarvis1net_calendar_date` = calendar date of `start` only."
 
@@ -190,6 +190,51 @@ def microsoft_calendar_events_on_date(args: dict[str, object]) -> dict[str, obje
 
 def microsoft_onedrive_list_root(_: dict[str, object]) -> dict[str, object]:
     return graph_get("/me/drive/root/children", {"$top": "50"})
+
+
+def _onenote_id(raw: object, label: str) -> str:
+    s = str(raw).strip()
+    if not s or len(s) > 300:
+        raise ValueError(f"{label} is required (non-empty, max 300 characters)")
+    for bad in ("..", "\n", "\r", "/", "?", "\\", " ", "#"):
+        if bad in s:
+            raise ValueError(f"{label} contains invalid characters")
+    return s
+
+
+def microsoft_onenote_list_notebooks(args: dict[str, object]) -> dict[str, object]:
+    top = min(max(int(args.get("top", 25)), 1), 50)
+    return graph_get(
+        "/me/onenote/notebooks",
+        {
+            "$top": str(top),
+            "$select": "id,displayName,createdDateTime,lastModifiedDateTime,isDefault,self",
+        },
+    )
+
+
+def microsoft_onenote_list_sections(args: dict[str, object]) -> dict[str, object]:
+    nb = _onenote_id(args.get("notebook_id"), "notebook_id")
+    top = min(max(int(args.get("top", 50)), 1), 100)
+    return graph_get(
+        f"/me/onenote/notebooks/{nb}/sections",
+        {"$top": str(top), "$select": "id,displayName,createdDateTime,pagesUrl,self"},
+    )
+
+
+def microsoft_onenote_list_pages(args: dict[str, object]) -> dict[str, object]:
+    sec = _onenote_id(args.get("section_id"), "section_id")
+    top = min(max(int(args.get("top", 25)), 1), 50)
+    return graph_get(
+        f"/me/onenote/sections/{sec}/pages",
+        {"$top": str(top), "$select": "id,title,createdDateTime,lastModifiedDateTime,links,self"},
+    )
+
+
+def microsoft_onenote_get_page_content(args: dict[str, object]) -> dict[str, object]:
+    pid = _onenote_id(args.get("page_id"), "page_id")
+    max_chars = min(max(int(args.get("max_chars", 100_000)), 2_000), 400_000)
+    return graph_get_text(f"/me/onenote/pages/{pid}/content", max_chars=max_chars)
 
 
 def microsoft_graph_api(args: dict[str, object]) -> dict[str, object]:

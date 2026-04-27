@@ -14,6 +14,7 @@ _MISSING = (
 )
 _MAX_PATH_LEN = 2048
 _MAX_JSON_BODY = 512 * 1024
+_MAX_TEXT_BODY = 500_000
 
 
 class GraphHttpError(Exception):
@@ -145,3 +146,43 @@ def graph_get(path: str, params: dict[str, object] | None = None, extra_headers:
     if not isinstance(data, dict):
         raise ValueError("Graph GET returned non-object JSON")
     return data
+
+
+def graph_get_text(
+    path: str,
+    *,
+    query: dict[str, object] | None = None,
+    accept: str = "text/html, application/xhtml+xml;q=0.9, */*;q=0.1",
+    max_chars: int = 120_000,
+    timeout_sec: int = 60,
+) -> dict[str, object]:
+    """GET a /me/... path whose response is HTML or other non-JSON (e.g. OneNote page body)."""
+    token = get_graph_bearer()
+    if not token:
+        raise GraphHttpError(_MISSING, 401)
+    parsed = urlparse(path.strip())
+    base_path = parsed.path
+    embedded_q = dict(parse_qsl(parsed.query))
+    merged_q: dict[str, str] = dict(embedded_q)
+    if query:
+        merged_q.update(_normalize_query(query))
+    safe_path = _safe_me_path(base_path)
+    url = _build_graph_url(safe_path, merged_q or None)
+    mc = max(1000, min(int(max_chars), _MAX_TEXT_BODY))
+    response = requests.get(
+        url,
+        headers={"Authorization": f"Bearer {token}", "Accept": accept},
+        timeout=timeout_sec,
+    )
+    if response.status_code >= 400:
+        raise GraphHttpError(response.text[:8000], response.status_code)
+    text = response.text or ""
+    total = len(text)
+    truncated = total > mc
+    return {
+        "status_code": response.status_code,
+        "content_type": response.headers.get("content-type") or "",
+        "truncated": truncated,
+        "total_chars": total,
+        "text": text[:mc] if truncated else text,
+    }

@@ -30,6 +30,10 @@ from tools.microsoft import (
     microsoft_mail_mark_read,
     microsoft_mail_search_messages,
     microsoft_onedrive_list_root,
+    microsoft_onenote_get_page_content,
+    microsoft_onenote_list_notebooks,
+    microsoft_onenote_list_pages,
+    microsoft_onenote_list_sections,
     resolve_graph_token,
     strip_token_copy,
 )
@@ -254,6 +258,47 @@ def tool_microsoft_calendar_events_on_date(date: str, time_zone: str = "Europe/W
 def tool_microsoft_onedrive_list_root(graph_access_token: str | None = None) -> dict[str, object]:
     result = _run_microsoft(microsoft_onedrive_list_root, {"graph_access_token": graph_access_token or ""})
     return _with_guidance("microsoft_onedrive_list_root", "list onedrive root children", result)
+
+
+@mcp.tool(name="microsoft_onenote_list_notebooks")
+def tool_microsoft_onenote_list_notebooks(top: int = 25, graph_access_token: str | None = None) -> dict[str, object]:
+    result = _run_microsoft(microsoft_onenote_list_notebooks, {"top": top, "graph_access_token": graph_access_token or ""})
+    return _with_guidance("microsoft_onenote_list_notebooks", f"list onenote notebooks top={top}", result)
+
+
+@mcp.tool(name="microsoft_onenote_list_sections")
+def tool_microsoft_onenote_list_sections(
+    notebook_id: str, top: int = 50, graph_access_token: str | None = None
+) -> dict[str, object]:
+    result = _run_microsoft(
+        microsoft_onenote_list_sections,
+        {"notebook_id": notebook_id, "top": top, "graph_access_token": graph_access_token or ""},
+    )
+    return _with_guidance("microsoft_onenote_list_sections", f"list onenote sections notebook_id={notebook_id} top={top}", result)
+
+
+@mcp.tool(name="microsoft_onenote_list_pages")
+def tool_microsoft_onenote_list_pages(section_id: str, top: int = 25, graph_access_token: str | None = None) -> dict[str, object]:
+    result = _run_microsoft(
+        microsoft_onenote_list_pages,
+        {"section_id": section_id, "top": top, "graph_access_token": graph_access_token or ""},
+    )
+    return _with_guidance("microsoft_onenote_list_pages", f"list onenote pages section_id={section_id} top={top}", result)
+
+
+@mcp.tool(name="microsoft_onenote_get_page_content")
+def tool_microsoft_onenote_get_page_content(
+    page_id: str, max_chars: int = 100_000, graph_access_token: str | None = None
+) -> dict[str, object]:
+    result = _run_microsoft(
+        microsoft_onenote_get_page_content,
+        {"page_id": page_id, "max_chars": max_chars, "graph_access_token": graph_access_token or ""},
+    )
+    return _with_guidance(
+        "microsoft_onenote_get_page_content",
+        f"get onenote page html page_id={page_id} max_chars={max_chars}",
+        result,
+    )
 
 
 @mcp.tool(name="microsoft_graph_api")
